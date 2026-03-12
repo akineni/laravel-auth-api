@@ -53,7 +53,7 @@ Optional flows supported:
 ## Installation
 
 ```bash
-git clone https://github.com/your-username/laravel-auth-api.git
+git clone https://github.com/akineni/laravel-auth-api.git
 cd laravel-auth-api
 
 composer install
