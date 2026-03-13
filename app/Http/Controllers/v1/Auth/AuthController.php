@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\v1\Auth;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\{
     ForgotPasswordRequest,
@@ -11,20 +12,12 @@ use App\Http\Requests\{
     ResetPasswordRequest,
     VerifyOtpRequest,
 };
-use App\Helpers\ApiResponse;
 use App\Services\Auth\AuthService;
-use App\Services\Auth\TokenService;
 
 class AuthController extends Controller
 {
-    protected $authService;
-    protected TokenService $tokenService;
-
-    public function __construct(AuthService $authService, TokenService $tokenService)
-    {
-        $this->authService = $authService;
-        $this->tokenService = $tokenService;
-    }
+    public function __construct(protected AuthService $authService)
+    {}
 
     /**
      * Register User
@@ -35,11 +28,13 @@ class AuthController extends Controller
      */
     public function register(RegisterRequest $request)
     {
-        $result = $this->authService->register($request->validated());
+        $otpChallengeData = $this->authService->register($request->validated());
 
-        return $result['success']
-            ? ApiResponse::success($result['message'], $result['data'] ?? null, 201)
-            : ApiResponse::error($result['message'], 422, $result['data'] ?? null);
+        return ApiResponse::success(
+            'Account created successfully. Please verify your email address with the OTP sent to you.',
+            $otpChallengeData,
+            201
+        );
     }
 
     /**
@@ -52,13 +47,12 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request)
     {
-        $result = $this->authService->login($request->validated());
+        $loginResponseData = $this->authService->login($request->validated());
 
-        if (!$result['success']) {
-            return ApiResponse::error($result['message'], 401, $result['data'] ?? null);
-        }
-
-        return ApiResponse::success($result['message'], $result['data'] ?? null);
+        return ApiResponse::success(
+            $loginResponseData->message,
+            $loginResponseData->data ?? null
+        );
     }
 
     /**
@@ -73,14 +67,15 @@ class AuthController extends Controller
     {
         $validated = $request->validated();
 
-        $response = $this->authService->verifyOtpAndHandleChallenge(
+        $authFlowResponseData = $this->authService->verifyOtpAndHandleChallenge(
             $validated['challenge_token'],
             $validated['otp']
         );
 
-        return $response['success']
-            ? ApiResponse::success($response['message'], $response['data'] ?? null)
-            : ApiResponse::error($response['message'], 401);
+        return ApiResponse::success(
+            $authFlowResponseData->message,
+            $authFlowResponseData->data ?? null
+        );
     }
 
     /**
@@ -95,11 +90,11 @@ class AuthController extends Controller
     {
         $validated = $request->validated();
 
-        $result = $this->authService->forgotPassword($validated['email']);
+        $this->authService->forgotPassword($validated['email']);
 
-        return $result['success']
-            ? ApiResponse::success($result['message'], $result['data'] ?? null, 200)
-            : ApiResponse::error($result['message'], 400, $result['data'] ?? null);
+        return ApiResponse::success(
+            'If an account with that email exists, a password reset link has been sent.'
+        );
     }
 
     /**
@@ -114,15 +109,13 @@ class AuthController extends Controller
     {
         $validated = $request->validated();
 
-        $result = $this->authService->resetPassword(
+        $this->authService->resetPassword(
             $validated['email'],
             $validated['token'],
             $validated['password']
         );
 
-        return $result['success']
-            ? ApiResponse::success($result['message'])
-            : ApiResponse::error($result['message']);
+        return ApiResponse::success('Password reset successful. You can now log in.');
     }
 
     /**
@@ -137,11 +130,12 @@ class AuthController extends Controller
     {
         $validated = $request->validated();
 
-        $result = $this->authService->resendOtp($validated['challenge_token']);
+        $otpChallengeData = $this->authService->resendOtp($validated['challenge_token']);
 
-        return $result['success']
-            ? ApiResponse::success($result['message'], $result['data'] ?? null)
-            : ApiResponse::error($result['message'], 400, $result['data'] ?? null);
+        return ApiResponse::success(
+            'OTP resent successfully.',
+            $otpChallengeData
+        );
     }
 
     /**
@@ -155,11 +149,12 @@ class AuthController extends Controller
      */
     public function refreshToken()
     {
-        $result = $this->authService->refresh();
+        $refreshData = $this->authService->refresh();
 
-        return $result['success']
-            ? ApiResponse::success($result['message'], $result['data'])
-            : ApiResponse::error($result['message'], 401);
+        return ApiResponse::success(
+            'Token refreshed successfully.',
+            $refreshData
+        );
     }
 
     /**

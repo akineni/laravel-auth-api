@@ -2,8 +2,16 @@
 
 namespace App\Services\Auth;
 
-use App\Enums\OtpContextEnum;
-use App\Enums\UserStatusEnum;
+use App\Data\Auth\{OtpChallengeData, AuthFlowResponseData};
+use App\Enums\{OtpContextEnum, UserStatusEnum};
+use App\Exceptions\Auth\{
+    AccountLockedException,
+    InactiveAccountException,
+    InvalidCredentialsException,
+    InvalidOtpChallengeException,
+    InvalidResetTokenException,
+    UnsupportedOtpContextException
+};
 use App\Models\User;
 use App\Notifications\ResetPasswordNotification;
 use App\Repositories\Contracts\{
@@ -11,9 +19,8 @@ use App\Repositories\Contracts\{
     PasswordResetTokenRepositoryInterface,
     UserRepositoryInterface
 };
+use App\Services\OTP\{SendOtpService, VerifyOtpService};
 use App\Traits\CompletesLogin;
-use App\Services\OTP\SendOtpService;
-use App\Services\OTP\VerifyOtpService;
 use Illuminate\Support\Facades\Hash;
 
 class AuthService
@@ -32,151 +39,96 @@ class AuthService
         private TokenService $tokenService,
     ) {}
 
-    public function register(array $data): array
+    public function register(array $data): OtpChallengeData
     {
         $user = $this->userRepository->create(
             collect($data)->except('password_confirmation')->toArray()
         );
 
-        $response = $this->sendOtpService->send(
+        return $this->sendOtpService->send(
             user: $user,
             channelName: 'email',
             context: OtpContextEnum::EMAIL_VERIFICATION
         );
-
-        if (!$response['success']) {
-            return $response;
-        }
-
-        $response['message'] = 'Account created successfully. Please verify your email address with the OTP sent to you.';
-
-        return $response;
     }
 
-    public function login(array $credentials): array
+    public function login(array $credentials): AuthFlowResponseData
     {
         $user = $this->userRepository->findByEmail($credentials['email']);
 
         if (!$user) {
-            return $this->handleFailedLogin(null);
+            $this->handleFailedLogin();
         }
 
-        if ($response = $this->validateUserStatus($user)) {
-            return $response;
-        }
+        $this->ensureUserIsNotLocked($user);
+        $this->ensureUserIsActive($user);
 
         if (!$this->checkCredentials($user, $credentials['password'])) {
-            return $this->handleFailedLogin($user);
+            $this->handleFailedLogin($user);
         }
 
-        if ($this->isLocked($user)) {
-            return [
-                'success' => false,
-                'message' => 'Account locked. Try again later.',
-            ];
-        }
-        
         $this->userRepository->resetFailedLoginAttempts($user);
 
         if ($user->two_fa) {
-            $result = $this->sendOtpService->send(
+            $otpChallengeData = $this->sendOtpService->send(
                 user: $user,
                 channelName: 'email',
                 context: OtpContextEnum::LOGIN
             );
 
-            if (!$result['success']) {
-                return $result;
-            }
-
-            return [
-                'success' => true,
-                'message' => 'OTP sent to your email',
-                'data' => $result['data']
-            ];
+            return AuthFlowResponseData::otpRequired($otpChallengeData);
         }
 
-        return $this->completeLogin($user);
+        return AuthFlowResponseData::authenticated(
+            $this->finalizeLogin($user)
+        );
     }
 
-    public function verifyOtpAndHandleChallenge(string $challengeToken, string $otp): array
+    public function verifyOtpAndHandleChallenge(string $challengeToken, string $otp): AuthFlowResponseData
     {
-        $response = $this->verifyOtpService->verifyCode($challengeToken, $otp);
-
-        if (!$response['success']) {
-            return $response;
-        }
-
-        /** @var \App\Models\OneTimePassword $challenge */
-        $challenge = $response['data'];
+        $challenge = $this->verifyOtpService->verifyCode($challengeToken, $otp);
         $user = $challenge->user;
 
         return match ($challenge->context) {
-            OtpContextEnum::LOGIN->value => $this->completeLogin($user),
+            OtpContextEnum::LOGIN->value => AuthFlowResponseData::authenticated(
+                $this->finalizeLogin($user)
+            ),
 
             OtpContextEnum::EMAIL_VERIFICATION->value => $this->completeEmailVerification($user),
 
-            OtpContextEnum::PASSWORD_RESET->value => [
-                'success' => true,
-                'message' => 'OTP verified successfully. You may now reset your password.',
-                'data' => null,
-            ],
+            OtpContextEnum::PASSWORD_RESET->value => AuthFlowResponseData::passwordResetVerified(),
 
-            default => [
-                'success' => false,
-                'message' => 'Unsupported OTP context.',
-                'data' => null,
-            ],
+            default => throw new UnsupportedOtpContextException(),
         };
     }
 
-    public function forgotPassword(string $email): array
+    public function forgotPassword(string $email): void
     {
         $user = $this->userRepository->findByEmail($email);
 
         if ($user) {
             $this->sendPasswordResetLink($user);
         }
-
-        return [
-            'success' => true,
-            'message' => 'If an account with that email exists, a password reset link has been sent.',
-            'data' => null,
-        ];
     }
 
-    public function resetPassword(string $email, string $token, string $password): array
+    public function resetPassword(string $email, string $token, string $password): void
     {
-        $validation = $this->validateResetRequest($email, $token);
-        $user = $validation['user'] ?? null;
-
-        if (!$validation['success']) {
-            return $validation;
-        }
+        $user = $this->validateResetRequest($email, $token);
 
         $this->userRepository->updatePassword($user, $password, false);
         $this->passwordResetRepository->delete($user);
-
-        return [
-            'success' => true,
-            'message' => 'Password reset successful. You can now log in.',
-        ];
     }
 
-    public function resendOtp(string $challengeToken): array
+    public function resendOtp(string $challengeToken): OtpChallengeData
     {
         $challenge = $this->oneTimePasswordRepository->findActiveByChallengeToken($challengeToken);
 
         if (!$challenge) {
-            return [
-                'success' => false,
-                'message' => 'Invalid or expired OTP challenge.',
-                'data' => null,
-            ];
+            throw new InvalidOtpChallengeException();
         }
 
         $user = $challenge->user;
-        $context = \App\Enums\OtpContextEnum::from($challenge->context);
+        $context = OtpContextEnum::from($challenge->context);
 
         return $this->sendOtpService->send(
             user: $user,
@@ -193,11 +145,7 @@ class AuthService
         $auth = auth();
         $user = $auth->user();
 
-        return [
-            'success' => true,
-            'message' => 'Token refreshed successfully.',
-            'data' => $this->formatTokenDataResponse($user, $token)
-        ];
+        return $this->formatTokenDataResponse($user, $token);
     }
 
     public function logout(): void
@@ -207,31 +155,19 @@ class AuthService
         $auth->logout();
     }
 
-    protected function validateResetRequest(string $email, string $token): array
+    protected function validateResetRequest(string $email, string $token): User
     {
         $user = $this->userRepository->findByEmail($email);
 
         if (!$user) {
-            return [
-                'success' => false,
-                'message' => 'Invalid user.',
-                'user' => null,
-            ];
+            throw new InvalidResetTokenException('Invalid user.');
         }
 
         if (!$this->passwordResetRepository->exists($user, $token)) {
-            return [
-                'success' => false,
-                'message' => 'Invalid or expired reset token.',
-                'user' => null,
-            ];
+            throw new InvalidResetTokenException();
         }
 
-        return [
-            'success' => true,
-            'message' => 'Valid reset request.',
-            'user' => $user,
-        ];
+        return $user;
     }
 
     protected function sendPasswordResetLink(User $user): void
@@ -254,46 +190,39 @@ class AuthService
         return $user && Hash::check($password, $user->password);
     }
 
-    protected function handleFailedLogin(?User $user): array
+    protected function handleFailedLogin(?User $user = null): never
     {
         if ($user) {
             $this->userRepository->incrementFailedLogins($user);
 
             if (($user->failed_logins + 1) >= self::MAX_FAILED_ATTEMPTS) {
                 $this->userRepository->lockUntil($user, now()->addMinutes(self::LOCKOUT_MINUTES));
+
+                throw new AccountLockedException('Account locked due to too many failed login attempts. Try again later.');
             }
         }
 
-        return [
-            'success' => false,
-            'message' => 'Invalid credentials',
-        ];
+        throw new InvalidCredentialsException();
     }
 
-    protected function isLocked(User $user): bool
+    protected function ensureUserIsNotLocked(User $user): void
     {
-        return $user->locked_until && now()->lt($user->locked_until);
+        if ($user->locked_until && now()->lt($user->locked_until)) {
+            throw new AccountLockedException();
+        }
     }
 
-    protected function validateUserStatus(User $user): ?array
+    protected function ensureUserIsActive(User $user): void
     {
         if ($user->status !== UserStatusEnum::ACTIVE->value) {
-            return [
-                'success' => false,
-                'message' => 'Account is inactive. Please contact support.',
-            ];
+            throw new InactiveAccountException();
         }
-
-        return null;
     }
 
-    protected function completeEmailVerification(User $user): array
+    protected function completeEmailVerification(User $user): AuthFlowResponseData
     {
         $this->userRepository->verifyEmailAndActivate($user);
 
-        return [
-            'success' => true,
-            'message' => 'Email verified successfully.'
-        ];
+        return AuthFlowResponseData::emailVerified();
     }
 }

@@ -7,13 +7,13 @@ use Carbon\Carbon;
 
 trait CompletesLogin
 {
-    protected function completeLogin(User $user): array
+    protected function finalizeLogin(User $user): array
     {
         $this->updateLastLogin($user);
 
         $token = $this->generateLoginToken($user);
 
-        return $this->buildLoginResponse($user, $token);
+        return $this->formatTokenDataResponse($user, $token);
     }
 
     protected function updateLastLogin(User $user): void
@@ -25,15 +25,6 @@ trait CompletesLogin
     protected function generateLoginToken(User $user): string
     {
         return $this->tokenService->issue($user);
-    }
-
-    protected function buildLoginResponse(User $user, string $token): array
-    {
-        return [
-            'success' => true,
-            'message' => 'Login successful',
-            'data' => $this->formatTokenDataResponse($user, $token),
-        ];
     }
 
     protected function formatTokenDataResponse(User $user, string $token): array
@@ -51,4 +42,3 @@ trait CompletesLogin
         ];
     }
 }
-

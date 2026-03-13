@@ -2,7 +2,9 @@
 
 namespace App\Services\OTP;
 
+use App\Data\Auth\OtpChallengeData;
 use App\Enums\OtpContextEnum;
+use App\Exceptions\Auth\UnsupportedOtpChannelException;
 use App\Models\User;
 use App\Repositories\Contracts\OneTimePasswordRepositoryInterface;
 use App\Services\OTP\Contracts\OtpChannelInterface;
@@ -21,20 +23,20 @@ class SendOtpService
         protected array $channels = [],
     ) {}
 
-    public function send(User $user, string $channelName, OtpContextEnum $context): array
+    public function send(User $user, string $channelName, OtpContextEnum $context): OtpChallengeData
     {
         $channel = $this->resolveChannel($channelName);
 
         if (!$channel->supports($user)) {
-            return [
-                'success' => false,
-                'message' => "The {$channelName} channel is not supported for this user.",
-            ];
+            throw new UnsupportedOtpChannelException(
+                "The {$channelName} channel is not supported for this user."
+            );
         }
 
         $otp = $this->generator->generate();
-        $expiresAt = now()->addMinutes((int) config('otp.expiry_minutes', 5));
-        
+        $expiresIn = (int) config('otp.expiry_minutes', 5) * 60;
+        $expiresAt = now()->addSeconds($expiresIn);
+
         $challenge = $this->oneTimePasswordRepository->createChallenge(
             user: $user,
             code: $otp,
@@ -46,16 +48,12 @@ class SendOtpService
         $this->logOtp($otp, $user, $context);
         $channel->send($user, $otp, $context);
 
-        return [
-            'success' => true,
-            'message' => 'OTP sent successfully.',
-            'data' => [
-                'otp_required' => true,
-                'destination' => $this->resolveMaskedDestination($user, $channelName),
-                'challenge_token' => $challenge->challenge_token,
-                'expires_in' => config('otp.expiry_minutes', 5) * 60
-            ],
-        ];
+        return new OtpChallengeData(
+            otpRequired: true,
+            destination: $this->resolveMaskedDestination($user, $channelName) ?? '',
+            challengeToken: $challenge->challenge_token,
+            expiresIn: $expiresIn,
+        );
     }
 
     protected function resolveChannel(string $channelName): OtpChannelInterface
@@ -70,7 +68,6 @@ class SendOtpService
     protected function resolveMaskedDestination(User $user, string $channelName): ?string
     {
         return match ($channelName) {
-
             'email' => $user->email
                 ? \Str::mask($user->email, '*', 1, strpos($user->email, '@') - 2)
                 : null,

@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\Auth\AuthException;
 use App\Helpers\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -7,6 +8,12 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Illuminate\Support\Facades\Log;
 
 return function ($exceptions) {
+
+    $exceptions->render(function (AuthException $e, Request $request) {
+        Log::warning($e->getMessage(), ['exception' => $e]);
+
+        return ApiResponse::error($e->getMessage(), $e->statusCode());
+    });
     
     $exceptions->render(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, Request $request) {
         $modelName = class_basename($e->getModel());
