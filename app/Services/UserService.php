@@ -3,12 +3,14 @@
 namespace App\Services;
 
 use App\Enums\UserStatusEnum;
+use App\Exceptions\ConflictException;
 use App\Helpers\FileUploadHelper;
 use App\Models\User;
 use App\Notifications\UserActivationNotification;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Auth\AuthService;
 use Firebase\JWT\{JWT, Key};
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -25,9 +27,16 @@ class UserService
     /**
      * Get currently authenticated user.
      */
-    public function getCurrentUser(): ?User
+    public function getCurrentUser(): User
     {
-        return Auth::user();
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        if (! $user) {
+            throw new AuthenticationException('Unauthenticated.');
+        }
+
+        return $user;
     }
 
     /**
@@ -182,7 +191,7 @@ class UserService
         }
 
         return $this->userRepository->create(array_merge([
-            'password' => Str::random(12)
+            'password' => Str::random(12),
         ], $data));
     }
 
@@ -201,7 +210,7 @@ class UserService
             return $user->fresh();
         }
 
-        throw new \App\Exceptions\ConflictException('User with this email already exists.');
+        throw new ConflictException('User with this email already exists.');
     }
 
     /**
@@ -256,12 +265,16 @@ class UserService
             $newAvatar = FileUploadHelper::singleBinaryFileUpload($avatar, 'avatars', 'avatar_');
         } elseif (is_string($avatar)) {
             if (! preg_match('/^data:[^;]+;base64,/', $avatar)) {
-                throw new \InvalidArgumentException('Invalid avatar string format.');
+                throw ValidationException::withMessages([
+                    'avatar' => ['Invalid avatar string format.'],
+                ]);
             }
 
             $newAvatar = FileUploadHelper::singleStringFileUpload($avatar, 'avatars', 'avatar_');
         } else {
-            throw new \InvalidArgumentException('Invalid avatar format provided.');
+            throw ValidationException::withMessages([
+                'avatar' => ['Invalid avatar format provided.'],
+            ]);
         }
 
         if (! empty($user->avatar)) {

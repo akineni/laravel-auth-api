@@ -38,20 +38,12 @@ class UserController extends Controller
      */
     public function currentUser()
     {
-        try {
-            $user = $this->userService->getCurrentUser();
+        $user = $this->userService->getCurrentUser();
 
-            return ApiResponse::success(
-                'Current user retrieved successfully',
-                new UserResource($user)
-            );
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to get current user',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success(
+            'Current user retrieved successfully',
+            new UserResource($user)
+        );
     }
 
     /**
@@ -62,21 +54,13 @@ class UserController extends Controller
      */
     public function store(StoreUserRequest $request)
     {
-        try {
-            $user = $this->userService->createUser($request->validated());
+        $user = $this->userService->createUser($request->validated());
 
-            return ApiResponse::success(
-                'User created successfully. Activation email sent.',
-                new UserResource($user),
-                201
-            );
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to create user',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success(
+            'User created successfully. Activation email sent.',
+            new UserResource($user),
+            201
+        );
     }
 
     /**
@@ -87,20 +71,12 @@ class UserController extends Controller
      */
     public function index(SearchFilterRequest $request)
     {
-        try {
-            $users = $this->userService->getAllUsersPaginated($request->validated());
+        $users = $this->userService->getAllUsersPaginated($request->validated());
 
-            return ApiResponse::success(
-                'Users retrieved successfully',
-                ApiCollection::for($users, UserMiniResource::class)
-            );
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to fetch users',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success(
+            'Users retrieved successfully',
+            ApiCollection::for($users, UserMiniResource::class)
+        );
     }
 
     /**
@@ -111,20 +87,12 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
-        try {
-            $user->loadMissing('roles');
+        $user->loadMissing('roles');
 
-            return ApiResponse::success(
-                'User retrieved successfully',
-                new UserResource($user)
-            );
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to fetch user details',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success(
+            'User retrieved successfully',
+            new UserResource($user)
+        );
     }
 
     /**
@@ -135,20 +103,12 @@ class UserController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user)
     {
-        try {
-            $updatedUser = $this->userService->update($user, $request->validated());
+        $updatedUser = $this->userService->update($user, $request->validated());
 
-            return ApiResponse::success(
-                'User updated successfully',
-                new UserResource($updatedUser)
-            );
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to update user',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success(
+            'User updated successfully',
+            new UserResource($updatedUser)
+        );
     }
 
     /**
@@ -161,20 +121,12 @@ class UserController extends Controller
      */
     public function updateMe(UpdateProfileRequest $request)
     {
-        try {
-            $user = $this->userService->update($request->user(), $request->validated());
+        $user = $this->userService->update($request->user(), $request->validated());
 
-            return ApiResponse::success(
-                'Profile updated successfully',
-                new UserResource($user)
-            );
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to update profile.',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success(
+            'Profile updated successfully',
+            new UserResource($user)
+        );
     }
 
     /**
@@ -185,17 +137,9 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
-        try {
-            $this->userService->deleteUser($user);
+        $this->userService->deleteUser($user);
 
-            return ApiResponse::success('User deleted successfully');
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to delete user',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success('User deleted successfully');
     }
 
     /**
@@ -206,20 +150,12 @@ class UserController extends Controller
      */
     public function activateUser(User $user)
     {
-        try {
-            $updatedUser = $this->userService->activateUser($user);
+        $updatedUser = $this->userService->activateUser($user);
 
-            return ApiResponse::success(
-                'User activated successfully',
-                new UserResource($updatedUser)
-            );
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to activate user',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success(
+            'User activated successfully',
+            new UserResource($updatedUser)
+        );
     }
 
     /**
@@ -230,20 +166,12 @@ class UserController extends Controller
      */
     public function deactivateUser(User $user)
     {
-        try {
-            $updatedUser = $this->userService->deactivateUser($user);
+        $updatedUser = $this->userService->deactivateUser($user);
 
-            return ApiResponse::success(
-                'User deactivated successfully',
-                new UserResource($updatedUser)
-            );
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to deactivate user',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success(
+            'User deactivated successfully',
+            new UserResource($updatedUser)
+        );
     }
 
     /**
@@ -254,32 +182,17 @@ class UserController extends Controller
      */
     public function activateUserAccount(ActivateUserAccountRequest $request)
     {
-        try {
-            $validated = $request->validated();
-            $user = $this->userService->activateAccount(
-                $validated['token'],
-                $validated['password']
-            );
+        $validated = $request->validated();
 
-            return ApiResponse::success(
-                'User activated successfully',
-                new UserResource($user)
-            );
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            $firstError = collect($e->errors())->flatten()->first();
+        $user = $this->userService->activateAccount(
+            $validated['token'],
+            $validated['password']
+        );
 
-            return ApiResponse::error(
-                'Activation failed: ' . $firstError,
-                $e->status,
-                $e->errors()
-            );
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to activate account',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success(
+            'User activated successfully',
+            new UserResource($user)
+        );
     }
 
     /**
@@ -292,19 +205,11 @@ class UserController extends Controller
      */
     public function changeMyPassword(ChangePasswordRequest $request)
     {
-        try {
-            $this->userService->changePassword(
-                $request->user(),
-                $request->validated()['new_password']
-            );
+        $this->userService->changePassword(
+            $request->user(),
+            $request->validated('new_password')
+        );
 
-            return ApiResponse::success('Password changed successfully');
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to change password.',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success('Password changed successfully');
     }
 }
