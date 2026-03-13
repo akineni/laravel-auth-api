@@ -2,7 +2,7 @@
 
 namespace App\Services\Auth\SSO;
 
-use App\Exceptions\UnsupportedSsoProviderException;
+use App\Exceptions\Auth\Sso\UnsupportedSsoProviderException;
 use App\Services\Auth\SSO\Contracts\SsoProviderInterface;
 
 class SsoProviderFactory

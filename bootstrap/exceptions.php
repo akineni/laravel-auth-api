@@ -10,8 +10,6 @@ use Illuminate\Support\Facades\Log;
 return function ($exceptions) {
 
     $exceptions->render(function (AuthException $e, Request $request) {
-        Log::warning($e->getMessage(), ['exception' => $e]);
-
         return ApiResponse::error($e->getMessage(), $e->statusCode());
     });
     

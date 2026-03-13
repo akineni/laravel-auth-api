@@ -2,14 +2,13 @@
 
 namespace App\Services\Auth\SSO;
 
-use App\Exceptions\SsoInvalidCodeException;
+use App\Exceptions\Auth\Sso\{SsoInvalidStateException, SsoInvalidCodeException};
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Auth\TokenService;
 use App\Traits\CompletesLogin;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
-use InvalidArgumentException;
 
 class SsoService
 {
@@ -45,13 +44,13 @@ class SsoService
     public function handleCallback(string $provider, ?string $state): array
     {
         if (!$state) {
-            throw new InvalidArgumentException('Missing state in callback.');
+            throw new SsoInvalidStateException('Missing state in callback.');
         }
 
         $successUrl = $this->consumeState($provider, $state);
 
         if (!$successUrl) {
-            throw new InvalidArgumentException('Invalid or expired state.');
+            throw new SsoInvalidStateException('Invalid or expired state.');
         }
 
         $ssoProvider = SsoProviderFactory::make($provider);
