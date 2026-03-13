@@ -7,9 +7,9 @@ use App\Models\{Role, User};
 interface UserRoleRepositoryInterface
 {
     /**
-     * Find a role by ID.
+     * Find a role by ID or fail.
      */
-    public function findRoleById(string $roleId): ?Role;
+    public function findRoleByIdOrFail(string $roleId): Role;
 
     /**
      * Check if a user has a role.
@@ -25,5 +25,4 @@ interface UserRoleRepositoryInterface
      * Revoke a role from a user.
      */
     public function revokeRole(User $user, Role $role): User;
-
 }

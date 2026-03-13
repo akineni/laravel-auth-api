@@ -2,6 +2,7 @@
 
 use App\Exceptions\Auth\AuthException;
 use App\Helpers\ApiResponse;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -13,13 +14,10 @@ return function ($exceptions) {
         return ApiResponse::error($e->getMessage(), $e->statusCode());
     });
     
-    $exceptions->render(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, Request $request) {
-        $modelName = class_basename($e->getModel());
-        $message = "{$modelName} not found";
+    $exceptions->render(function (ModelNotFoundException $e, Request $request) {
+        $model = class_basename($e->getModel());
 
-        Log::error($message, ['exception' => $e]);
-
-        return ApiResponse::error($message, 404);
+        return ApiResponse::error("{$model} not found.", 404);
     });
 
     $exceptions->render(function (\Spatie\Permission\Exceptions\UnauthorizedException $e, Request $request) {
@@ -38,12 +36,6 @@ return function ($exceptions) {
     $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e, Request $request) {
         Log::warning("Resource not found", ['exception' => $e]);
         return ApiResponse::error("Resource not found", 404);
-    });
-
-    $exceptions->render(function (\App\Exceptions\NotFoundException $e, Request $request) {
-        $status = $e->getCode() ?: Response::HTTP_NOT_FOUND;
-        Log::error($e->getMessage(), ['exception' => $e]);
-        return ApiResponse::error($e->getMessage(), $status);
     });
 
     $exceptions->render(function (\App\Exceptions\ConflictException $e, Request $request) {

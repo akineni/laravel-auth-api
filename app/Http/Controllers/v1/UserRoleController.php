@@ -28,20 +28,12 @@ class UserRoleController extends Controller
      */
     public function assignRole(UserRoleRequest $request, User $user)
     {
-        try {
-            $user = $this->userRoleService->assignRole($user, $request->role_id);
+        $user = $this->userRoleService->assignRole($user, $request->validated('role_id'));
 
-            return ApiResponse::success(
-                'Role assigned successfully',
-                new UserResource($user)
-            );
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to assign role.',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success(
+            'Role assigned successfully',
+            new UserResource($user)
+        );
     }
 
     /**
@@ -52,19 +44,11 @@ class UserRoleController extends Controller
      */
     public function revokeRole(UserRoleRequest $request, User $user)
     {
-        try {
-            $user = $this->userRoleService->revokeRole($user, $request->role_id);
+        $user = $this->userRoleService->revokeRole($user, $request->validated('role_id'));
 
-            return ApiResponse::success(
-                'Role revoked successfully',
-                new UserResource($user)
-            );
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to revoke role.',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success(
+            'Role revoked successfully',
+            new UserResource($user)
+        );
     }
 }

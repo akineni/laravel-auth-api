@@ -10,13 +10,13 @@ use Illuminate\Support\Facades\DB;
 class UserRoleRepository implements UserRoleRepositoryInterface
 {
     /**
-     * Find a role by id.
+     * Find a role by ID or fail.
      */
-    public function findRoleById(string $roleId): ?Role
+    public function findRoleByIdOrFail(string $roleId): Role
     {
         return Role::query()
             ->with('permissions')
-            ->find($roleId);
+            ->findOrFail($roleId);
     }
 
     /**
