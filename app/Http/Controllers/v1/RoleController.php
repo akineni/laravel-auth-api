@@ -25,20 +25,12 @@ class RoleController extends Controller
      */
     public function index(SearchFilterRequest $request)
     {
-        try {
-            $roles = $this->roleService->getAll($request->validated());
+        $roles = $this->roleService->getAll($request->validated());
 
-            return ApiResponse::success(
-                'Roles retrieved successfully',
-                ApiCollection::for($roles, RoleResource::class)
-            );
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to retrieve roles.',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success(
+            'Roles retrieved successfully',
+            ApiCollection::for($roles, RoleResource::class)
+        );
     }
 
     /**
@@ -49,20 +41,12 @@ class RoleController extends Controller
      */
     public function store(RoleRequest $request)
     {
-        try {
-            $data = $this->roleService->create($request->validated());
+        $role = $this->roleService->create($request->validated());
 
-            return ApiResponse::success(
-                'Role created successfully',
-                new RoleResource($data)
-            );
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to create role.',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success(
+            'Role created successfully',
+            new RoleResource($role)
+        );
     }
 
     /**
@@ -73,19 +57,10 @@ class RoleController extends Controller
      */
     public function show(Role $role)
     {
-        try {
-            return ApiResponse::success(
-                'Role retrieved successfully',
-                new RoleResource($role)
-            );
-
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to retrieve role.',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success(
+            'Role retrieved successfully',
+            new RoleResource($role)
+        );
     }
 
     /**
@@ -96,20 +71,12 @@ class RoleController extends Controller
      */
     public function update(RoleRequest $request, Role $role)
     {
-        try {
-            $updatedRole = $this->roleService->update($role, $request->validated());
+        $updatedRole = $this->roleService->update($role, $request->validated());
 
-            return ApiResponse::success(
-                'Role updated successfully',
-                new RoleResource($updatedRole)
-            );
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to update role.',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success(
+            'Role updated successfully',
+            new RoleResource($updatedRole)
+        );
     }
 
     /**
@@ -120,17 +87,9 @@ class RoleController extends Controller
      */
     public function destroy(Role $role)
     {
-        try {
-            $this->roleService->destroy($role);
+        $this->roleService->destroy($role);
 
-            return ApiResponse::success('Role deleted successfully');
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to delete role.',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success('Role deleted successfully');
     }
 
     /**
@@ -141,19 +100,11 @@ class RoleController extends Controller
      */
     public function getPermissions(SearchFilterRequest $request)
     {
-        try {
-            $permissions = $this->roleService->getAllPermissions($request->validated());
+        $permissions = $this->roleService->getAllPermissions($request->validated());
 
-            return ApiResponse::success(
-                'Permissions retrieved successfully',
-                $permissions
-            );
-        } catch (\Throwable $th) {
-            return ApiResponse::error(
-                'Failed to retrieve permissions.',
-                500,
-                $th->getMessage()
-            );
-        }
+        return ApiResponse::success(
+            'Permissions retrieved successfully',
+            $permissions
+        );
     }
 }
