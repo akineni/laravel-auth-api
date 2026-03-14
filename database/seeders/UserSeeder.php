@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\SignupSourceEnum;
 use App\Enums\UserStatusEnum;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -30,6 +31,7 @@ class UserSeeder extends Seeder
                 'address' => $faker->address(),
                 'email' => $faker->unique()->safeEmail(),
                 'email_verified_at' => now(),
+                'signup_source' => SignupSourceEnum::SEEDER->value,
                 'password' => '12345678', // auto hashed from model
                 'last_login' => now(),
                 'status' => UserStatusEnum::ACTIVE->value,

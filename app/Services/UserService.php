@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\SignupSourceEnum;
 use App\Enums\UserStatusEnum;
 use App\Exceptions\ConflictException;
 use App\Helpers\FileUploadHelper;
@@ -192,6 +193,7 @@ class UserService
 
         return $this->userRepository->create(array_merge([
             'password' => Str::random(12),
+            'signup_source' => SignupSourceEnum::ADMIN->value
         ], $data));
     }
 

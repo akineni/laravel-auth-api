@@ -2,6 +2,7 @@
 
 namespace App\Services\Auth\SSO\Providers;
 
+use App\Enums\SignupSourceEnum;
 use App\Enums\UserStatusEnum;
 use App\Models\User;
 use App\Services\Auth\SSO\Contracts\SsoProviderInterface;
@@ -72,6 +73,7 @@ class FacebookSsoProvider implements SsoProviderInterface
         $user->avatar = $facebookUser->getAvatar() ?: $user->avatar;
 
         $user->email_verified_at = $user->email_verified_at ?: now();
+        $user->signup_source = SignupSourceEnum::FACEBOOK->value;
         $user->status = UserStatusEnum::ACTIVE->value;
         $user->last_login = now();
 

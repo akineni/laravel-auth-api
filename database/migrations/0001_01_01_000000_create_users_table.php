@@ -30,6 +30,9 @@ return new class extends Migration
             $table->mediumText('address')->nullable();
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
+            $table->string('signup_source')
+                ->default('self')
+                ->comment('Account origin: self, admin, seeder, google, facebook, etc');
             $table->string('password');
             $table->timestamp('last_login')->nullable();
 

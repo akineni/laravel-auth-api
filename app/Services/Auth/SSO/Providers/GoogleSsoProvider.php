@@ -2,6 +2,7 @@
 
 namespace App\Services\Auth\SSO\Providers;
 
+use App\Enums\SignupSourceEnum;
 use App\Enums\UserStatusEnum;
 use App\Models\User;
 use App\Services\Auth\SSO\Contracts\SsoProviderInterface;
@@ -52,6 +53,7 @@ class GoogleSsoProvider implements SsoProviderInterface
         $user->email_verified_at = !empty($googleData['email_verified'])
             ? ($user->email_verified_at ?? now())
             : $user->email_verified_at;
+        $user->signup_source = SignupSourceEnum::GOOGLE->value;
         $user->status = UserStatusEnum::ACTIVE->value;
         $user->last_login = now();
 
