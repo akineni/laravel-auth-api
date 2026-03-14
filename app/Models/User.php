@@ -4,14 +4,17 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
+use App\Models\Concerns\HasCommonFilterScopes;
+use App\Models\Concerns\HasSearchScope;
 use App\Traits\HasFullName;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
 class User extends Authenticatable implements JWTSubject
@@ -23,7 +26,9 @@ class User extends Authenticatable implements JWTSubject
         HasApiTokens,
         HasUuids,
         SoftDeletes,
-        HasFullName;
+        HasFullName,
+        HasSearchScope,
+        HasCommonFilterScopes;
 
     protected $guard_name = 'api';
 
@@ -47,6 +52,7 @@ class User extends Authenticatable implements JWTSubject
         'remember_token',
         'otp_code',
         'otp_expires_at',
+        'two_fa_secret',
     ];
 
     /**
@@ -60,7 +66,82 @@ class User extends Authenticatable implements JWTSubject
             'last_login' => 'datetime',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'two_fa' => 'boolean',
+            'locked_until' => 'datetime',
         ];
+    }
+
+    /**
+     * Searchable real columns.
+     */
+    public function getSearchableColumns(): array
+    {
+        return [
+            'firstname',
+            'lastname',
+            'email',
+            'phone_number',
+            'status',
+            'gender',
+            'state',
+            'country',
+            'postcode',
+        ];
+    }
+
+    /**
+     * Searchable aliases / virtual fields.
+     */
+    public function getSearchableAliases(): array
+    {
+        return [
+            'fullname' => function (Builder $query, string $term) {
+                $query->where(function (Builder $q) use ($term) {
+                    $q->orWhere('firstname', 'LIKE', "%{$term}%")
+                        ->orWhere('lastname', 'LIKE', "%{$term}%")
+                        ->orWhereRaw(
+                            "CONCAT(firstname, ' ', lastname) LIKE ?",
+                            ["%{$term}%"]
+                        )
+                        ->orWhereRaw(
+                            "CONCAT(lastname, ' ', firstname) LIKE ?",
+                            ["%{$term}%"]
+                        );
+                });
+            },
+        ];
+    }
+
+    /**
+     * Allowed searchable relations.
+     */
+    public function getSearchableRelations(): array
+    {
+        return [
+            'roles',
+        ];
+    }
+
+    /**
+     * Default search fields when frontend doesn't pass searchable fields.
+     */
+    public function getDefaultSearchFields(): array
+    {
+        return [
+            'fullname',
+            'email',
+            'phone_number',
+            'status',
+            'roles.name',
+        ];
+    }
+
+    /**
+     * Use the actual lifecycle status column.
+     */
+    protected function getStatusFilterColumn(): ?string
+    {
+        return 'status';
     }
 
     /**

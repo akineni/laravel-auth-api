@@ -3,7 +3,6 @@
 namespace App\Repositories\Eloquent;
 
 use App\Enums\UserStatusEnum;
-use App\Filters\QueryFilter;
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -93,13 +92,23 @@ class UserRepository implements UserRepositoryInterface
 
     public function paginate(array $filters = []): LengthAwarePaginator
     {
-        $query = QueryFilter::apply(User::query(), array_merge($filters, [
-            'searchable' => ['firstname', 'lastname', 'email', 'phone_number'],
-        ]));
-
         $perPage = $filters['per_page'] ?? config('app.pagination_per_page');
 
-        return $query->latest()->paginate($perPage);
+        return User::query()
+            ->search($filters['search'] ?? null, [
+                'fullname',
+                'firstname',
+                'lastname',
+                'email',
+                'phone_number',
+            ])
+            ->filterStatus($filters['status'] ?? null)
+            ->createdBetween(
+                $filters['start_date'] ?? null,
+                $filters['end_date'] ?? null
+            )
+            ->latest()
+            ->paginate($perPage);
     }
 
     public function findByIdOrFail(string $id): User

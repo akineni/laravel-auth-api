@@ -4,6 +4,15 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Common search and filtering parameters.
+ *
+ * @queryParam search string Search term used to filter records. Example: john
+ * @queryParam status string Filter records by status. Example: active
+ * @queryParam start_date string Filter records created from this date (YYYY-MM-DD). Example: 2026-01-01
+ * @queryParam end_date string Filter records created up to this date (YYYY-MM-DD). Example: 2026-01-31
+ * @queryParam per_page int Number of items per page. Example: 15
+ */
 class SearchFilterRequest extends FormRequest
 {
     /**
@@ -22,30 +31,61 @@ class SearchFilterRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'per_page' => 'nullable|integer|min:1',
-            'search' => 'nullable|string|max:255',
-            'status' => 'nullable|string', // in:active,inactive
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'per_page' => ['nullable', 'integer', 'min:1'],
+            'search' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', 'string'],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
         ];
     }
 
-    public function messages(): array
+    /**
+     * Return only the supported filter inputs.
+     */
+    public function filters(): array
     {
-        return [
-            'per_page.integer' => 'The per_page value must be an integer.',
-            'per_page.min' => 'The per_page value must be at least 1.',
-            'search.max' => 'The search value may not be greater than 255 characters.',
-            // 'status.in' => "The status must be either 'active' or 'inactive'.",
-            'start_date.date' => 'The start date must be a valid date in the format YYYY-MM-DD.',
-            'end_date.date' => 'The end date must be a valid date in the format YYYY-MM-DD.',
-            'end_date.after_or_equal' => 'The end date must be a date after or equal to the start date.',
-        ];
+        return array_filter([
+            'per_page' => $this->perPage(),
+            'search' => $this->searchTerm(),
+            'status' => $this->status(),
+            'start_date' => $this->startDate(),
+            'end_date' => $this->endDate(),
+        ], fn ($value) => $value !== null);
     }
 
-    public function perPage(): ?int { return $this->integer('per_page'); }
-    public function search(): ?string { return $this->string('search')->toString(); }
-    public function status(): ?string { return $this->string('status')->toString(); }
-    public function startDate(): ?string { return $this->input('start_date'); }
-    public function endDate(): ?string { return $this->input('end_date'); }
+    public function perPage(): ?int
+    {
+        return $this->filled('per_page') ? $this->integer('per_page') : null;
+    }
+
+    public function searchTerm(): ?string
+    {
+        return $this->normalizeString($this->input('search'));
+    }
+
+    public function status(): ?string
+    {
+        return $this->normalizeString($this->input('status'));
+    }
+
+    public function startDate(): ?string
+    {
+        return $this->filled('start_date') ? $this->input('start_date') : null;
+    }
+
+    public function endDate(): ?string
+    {
+        return $this->filled('end_date') ? $this->input('end_date') : null;
+    }
+
+    protected function normalizeString(mixed $value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        return $value === '' ? null : $value;
+    }
 }

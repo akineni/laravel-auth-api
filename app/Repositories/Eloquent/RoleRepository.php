@@ -2,7 +2,6 @@
 
 namespace App\Repositories\Eloquent;
 
-use App\Filters\QueryFilter;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Repositories\Contracts\RoleRepositoryInterface;
@@ -15,15 +14,17 @@ class RoleRepository implements RoleRepositoryInterface
      */
     public function paginateRoles(array $filters = []): LengthAwarePaginator
     {
-        $query = Role::query()->withCount('users');
-
-        $query = QueryFilter::apply($query, array_merge($filters, [
-            'searchable' => ['name'],
-        ]));
-
         $perPage = $filters['per_page'] ?? config('app.pagination_per_page');
 
-        return $query->latest()->paginate($perPage);
+        return Role::query()
+            ->withCount('users')
+            ->search($filters['search'] ?? null, ['name'])
+            ->createdBetween(
+                $filters['start_date'] ?? null,
+                $filters['end_date'] ?? null
+            )
+            ->latest()
+            ->paginate($perPage);
     }
 
     /**
@@ -72,14 +73,15 @@ class RoleRepository implements RoleRepositoryInterface
      */
     public function paginatePermissions(array $filters = []): LengthAwarePaginator
     {
-        $query = Permission::query();
-
-        $query = QueryFilter::apply($query, array_merge($filters, [
-            'searchable' => ['name'],
-        ]));
-
         $perPage = $filters['per_page'] ?? config('app.pagination_per_page');
 
-        return $query->latest()->paginate($perPage);
+        return Permission::query()
+            ->search($filters['search'] ?? null, ['name'])
+            ->createdBetween(
+                $filters['start_date'] ?? null,
+                $filters['end_date'] ?? null
+            )
+            ->latest()
+            ->paginate($perPage);
     }
 }
