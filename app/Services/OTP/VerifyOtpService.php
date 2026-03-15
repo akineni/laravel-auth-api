@@ -2,36 +2,59 @@
 
 namespace App\Services\OTP;
 
+use App\Enums\OtpMethodEnum;
 use App\Exceptions\Auth\ExpiredOtpException;
 use App\Exceptions\Auth\InvalidOtpChallengeException;
 use App\Exceptions\Auth\OtpVerificationException;
-use App\Models\OneTimePassword;
-use App\Repositories\Contracts\OneTimePasswordRepositoryInterface;
+use App\Models\AuthChallenge;
+use App\Repositories\Contracts\AuthChallengeRepositoryInterface;
+use PragmaRX\Google2FA\Google2FA;
 
 class VerifyOtpService
 {
     public function __construct(
-        protected OneTimePasswordRepositoryInterface $oneTimePasswordRepository
+        protected readonly AuthChallengeRepositoryInterface $authChallengeRepository,
+        protected Google2FA $google2fa,
     ) {}
 
-    public function verifyCode(string $challengeToken, string $otp): OneTimePassword
+    public function verifyCode(string $challengeToken, string $otp): AuthChallenge
     {
-        $challenge = $this->oneTimePasswordRepository->findActiveByChallengeToken($challengeToken);
+        $challenge = $this->authChallengeRepository->findActiveByChallengeToken($challengeToken);
 
         if (!$challenge) {
             throw new InvalidOtpChallengeException();
         }
 
-        if ($this->oneTimePasswordRepository->isChallengeExpired($challenge)) {
+        if ($this->authChallengeRepository->isChallengeExpired($challenge)) {
             throw new ExpiredOtpException();
         }
 
-        if (!$this->oneTimePasswordRepository->challengeMatches($challenge, $otp)) {
+        $method = OtpMethodEnum::from($challenge->method);
+
+        $isValid = match ($method) {
+            OtpMethodEnum::OTP_EMAIL,
+            OtpMethodEnum::OTP_SMS => $this->authChallengeRepository->challengeMatches($challenge, $otp),
+
+            OtpMethodEnum::TOTP => $this->verifyTotpChallenge($challenge, $otp),
+        };
+
+        if (!$isValid) {
             throw new OtpVerificationException('Invalid OTP.');
         }
 
-        $this->oneTimePasswordRepository->markChallengeVerified($challenge);
+        $this->authChallengeRepository->markChallengeVerified($challenge);
 
         return $challenge;
+    }
+
+    protected function verifyTotpChallenge(AuthChallenge $challenge, string $otp): bool
+    {
+        $user = $challenge->user;
+
+        if (!$user || !$user->two_fa_secret) {
+            return false;
+        }
+
+        return $this->google2fa->verifyKey($user->two_fa_secret, $otp);
     }
 }

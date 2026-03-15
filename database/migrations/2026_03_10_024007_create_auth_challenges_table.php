@@ -11,17 +11,27 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('one_time_passwords', function (Blueprint $table) {
+        /**
+         * Stores verification challenges for both server-generated OTPs
+         * and externally generated one-time codes such as authenticator apps.
+         */
+        Schema::create('auth_challenges', function (Blueprint $table) {
             $table->uuid('id')->primary();
+
             $table->foreignUuid('user_id')
                 ->constrained()
                 ->cascadeOnDelete()
                 ->cascadeOnUpdate();
-            
+
             $table->string('challenge_token')->unique();
-            $table->string('code');
-            $table->string('channel')->nullable(); // email, sms, whatsapp, etc.
-            $table->string('context')->nullable(); // login, password_reset, etc.
+
+            $table->string('code')->nullable();
+
+            $table->string('method')
+                ->comment('Verification mechanism used for this challenge (otp_email, otp_sms, totp, passkey, push, etc).');
+
+            $table->string('context')
+                ->comment('Purpose of the challenge (login, email_verification, password_reset, disable_two_fa, etc).');
 
             $table->timestamp('expires_at');
             $table->timestamp('verified_at')->nullable();
@@ -29,6 +39,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['user_id', 'context']);
+            $table->index(['user_id', 'method']);
             $table->index('expires_at');
         });
     }
@@ -38,6 +49,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('one_time_passwords');
+        Schema::dropIfExists('auth_challenges');
     }
 };

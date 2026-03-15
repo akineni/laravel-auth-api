@@ -18,8 +18,8 @@ class SsoService
     protected int $codeTtlMinutes = 5;
 
     public function __construct(
-        protected TokenService $tokenService,
-        protected UserRepositoryInterface $userRepository
+        protected readonly TokenService $tokenService,
+        protected readonly UserRepositoryInterface $userRepository
     ) {}
 
     /**

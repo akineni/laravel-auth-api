@@ -12,10 +12,7 @@ set -e
 
 echo "Starting Laravel setup..."
 
-# Run migrations
-php artisan migrate:fresh
-
-# Seed the database
-php artisan db:seed
+# Run migrations and seed the database
+php artisan migrate:fresh --seed
 
 echo "Laravel setup complete!"

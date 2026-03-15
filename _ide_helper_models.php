@@ -24,21 +24,21 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \App\Models\User $user
- * @method static \Illuminate\Database\Eloquent\Builder<static>|OneTimePassword newModelQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|OneTimePassword newQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|OneTimePassword query()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|OneTimePassword whereChallengeToken($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|OneTimePassword whereChannel($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|OneTimePassword whereCode($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|OneTimePassword whereContext($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|OneTimePassword whereCreatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|OneTimePassword whereExpiresAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|OneTimePassword whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|OneTimePassword whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|OneTimePassword whereUserId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|OneTimePassword whereVerifiedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthChallenge newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthChallenge newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthChallenge query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthChallenge whereChallengeToken($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthChallenge whereChannel($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthChallenge whereCode($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthChallenge whereContext($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthChallenge whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthChallenge whereExpiresAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthChallenge whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthChallenge whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthChallenge whereUserId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AuthChallenge whereVerifiedAt($value)
  */
-	class OneTimePassword extends \Eloquent {}
+	class AuthChallenge extends \Eloquent {}
 }
 
 namespace App\Models{

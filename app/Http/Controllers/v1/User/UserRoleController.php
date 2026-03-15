@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Http\Controllers\v1;
+namespace App\Http\Controllers\v1\User;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UserRoleRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Helpers\ApiResponse;
-use App\Services\UserRoleService;
+use App\Services\User\UserRoleService;
 
 /**
  * @group User Roles

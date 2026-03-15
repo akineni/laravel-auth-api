@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\v1;
+namespace App\Http\Controllers\v1\User;
 
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
@@ -14,7 +14,7 @@ use App\Http\Requests\{
 };
 use App\Http\Resources\{ApiCollection, UserMiniResource, UserResource};
 use App\Models\User;
-use App\Services\UserService;
+use App\Services\User\UserService;
 
 /**
  * @group Users

@@ -2,53 +2,57 @@
 
 namespace App\Repositories\Eloquent;
 
-use App\Models\OneTimePassword;
+use App\Models\AuthChallenge;
 use App\Models\User;
-use App\Repositories\Contracts\OneTimePasswordRepositoryInterface;
+use App\Repositories\Contracts\AuthChallengeRepositoryInterface;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Str;
 
-class OneTimePasswordRepository implements OneTimePasswordRepositoryInterface
+class AuthChallengeRepository implements AuthChallengeRepositoryInterface
 {
     public function createChallenge(
         User $user,
-        string $code,
+        ?string $code,
         CarbonInterface $expiresAt,
-        ?string $channel = null,
-        ?string $context = null
-    ): OneTimePassword {
+        string $method,
+        string $context
+    ): AuthChallenge {
         $this->clear($user, $context);
 
-        return OneTimePassword::create([
+        return AuthChallenge::create([
             'user_id' => $user->id,
             'challenge_token' => Str::random(64),
-            'code' => hash('sha256', $code),
-            'channel' => $channel,
+            'code' => $code ? hash('sha256', $code) : null,
+            'method' => $method,
             'context' => $context,
             'expires_at' => $expiresAt,
         ]);
     }
 
-    public function findActiveByChallengeToken(string $challengeToken): ?OneTimePassword
+    public function findActiveByChallengeToken(string $challengeToken): ?AuthChallenge
     {
-        return OneTimePassword::query()
+        return AuthChallenge::query()
             ->where('challenge_token', $challengeToken)
             ->whereNull('verified_at')
             ->with('user')
             ->first();
     }
 
-    public function isChallengeExpired(OneTimePassword $otp): bool
+    public function isChallengeExpired(AuthChallenge $challenge): bool
     {
-        return now()->gt($otp->expires_at);
+        return now()->gt($challenge->expires_at);
     }
 
-    public function challengeMatches(OneTimePassword $record, string $otp): bool
+    public function challengeMatches(AuthChallenge $record, string $code): bool
     {
-        return hash_equals($record->code, hash('sha256', $otp));
+        if (!$record->code) {
+            return false;
+        }
+
+        return hash_equals($record->code, hash('sha256', $code));
     }
 
-    public function markChallengeVerified(OneTimePassword $record): bool
+    public function markChallengeVerified(AuthChallenge $record): bool
     {
         return $record->update([
             'verified_at' => now(),
@@ -57,7 +61,7 @@ class OneTimePasswordRepository implements OneTimePasswordRepositoryInterface
 
     public function clear(User $user, ?string $context = null): bool
     {
-        $query = OneTimePassword::query()
+        $query = AuthChallenge::query()
             ->where('user_id', $user->id)
             ->whereNull('verified_at');
 

@@ -1,7 +1,7 @@
 <?php
 
 use App\Enums\PermissionEnum;
-use App\Http\Controllers\v1\{UserController, UserRoleController};
+use App\Http\Controllers\v1\User\{UserController, UserRoleController};
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:api')

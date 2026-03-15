@@ -16,23 +16,27 @@ return new class extends Migration
             $table->string('firstname');
             $table->string('lastname');
             $table->string('avatar')->nullable();
-            
+
             $table->enum('gender', [
                 'male',
                 'female',
                 'other',
                 'prefer_not_to_say'
             ])->nullable();
+
             $table->string('phone_number')->nullable();
             $table->string('postcode')->nullable();
             $table->string('state')->nullable();
             $table->string('country')->nullable();
             $table->mediumText('address')->nullable();
+
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
+
             $table->string('signup_source')
                 ->default('self')
                 ->comment('Account origin: self, admin, seeder, google, facebook, etc');
+
             $table->string('password');
             $table->timestamp('last_login')->nullable();
 
@@ -41,9 +45,25 @@ return new class extends Migration
                 ->default('pending')
                 ->comment('User lifecycle status');
 
-            // Booleans for additional control
-            $table->boolean('two_fa')->default(false)->comment('Whether 2FA is enabled');
-            $table->string('two_fa_secret')->nullable();
+            // Two-factor authentication
+            $table->boolean('two_fa')
+                ->default(false)
+                ->comment('Whether 2FA is enabled');
+
+            $table->string('two_fa_method')->default('default')
+                ->comment('Preferred 2FA method');
+
+            $table->text('two_fa_secret')->nullable()
+                ->comment('Encrypted authenticator app secret');
+
+            $table->timestamp('two_fa_confirmed_at')->nullable()
+                ->comment('When authenticator app setup was confirmed');
+
+            $table->text('two_fa_recovery_codes')->nullable()
+                ->comment('Encrypted JSON recovery codes');
+
+            $table->unsignedBigInteger('two_fa_last_used_window')->nullable()
+                ->comment('Last accepted TOTP window to prevent code replay');
 
             $table->unsignedInteger('failed_logins')->default(0);
             $table->timestamp('locked_until')->nullable();

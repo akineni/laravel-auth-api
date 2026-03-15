@@ -17,10 +17,12 @@ final readonly class AuthFlowResponseData
         );
     }
 
-    public static function otpRequired(OtpChallengeData $otpChallenge): self
-    {
+    public static function otpRequired(
+        OtpChallengeData $otpChallenge,
+        string $message = 'Verification code required.'
+    ): self {
         return new self(
-            message: 'OTP sent to your email',
+            message: $message,
             data: $otpChallenge,
         );
     }

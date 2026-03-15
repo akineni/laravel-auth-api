@@ -22,7 +22,7 @@ class VerifyOtpRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'challenge_token' => 'required|string|exists:one_time_passwords,challenge_token',
+            'challenge_token' => 'required|string|exists:auth_challenges,challenge_token',
             'otp' => 'required|string|digits:' . config('otp.length', 6),
         ];
     }

@@ -3,7 +3,7 @@
 namespace App\Services\Auth;
 
 use App\Data\Auth\{OtpChallengeData, AuthFlowResponseData};
-use App\Enums\{OtpContextEnum, UserStatusEnum};
+use App\Enums\{OtpContextEnum, OtpMethodEnum, UserStatusEnum};
 use App\Exceptions\Auth\{
     AccountLockedException,
     InactiveAccountException,
@@ -15,13 +15,15 @@ use App\Exceptions\Auth\{
 use App\Models\User;
 use App\Notifications\ResetPasswordNotification;
 use App\Repositories\Contracts\{
-    OneTimePasswordRepositoryInterface,
+    AuthChallengeRepositoryInterface,
     PasswordResetTokenRepositoryInterface,
     UserRepositoryInterface
 };
+use App\Services\Auth\TwoFactor\TwoFactorDriverManager;
 use App\Services\OTP\{SendOtpService, VerifyOtpService};
 use App\Traits\CompletesLogin;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class AuthService
 {
@@ -31,12 +33,13 @@ class AuthService
     const LOCKOUT_MINUTES = 15;
 
     public function __construct(
-        private UserRepositoryInterface $userRepository,
-        private PasswordResetTokenRepositoryInterface $passwordResetRepository,
-        private OneTimePasswordRepositoryInterface $oneTimePasswordRepository,
-        private SendOtpService $sendOtpService,
-        private VerifyOtpService $verifyOtpService,
-        private TokenService $tokenService,
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly TwoFactorDriverManager $twoFactorDriverManager,
+        private readonly PasswordResetTokenRepositoryInterface $passwordResetRepository,
+        private readonly AuthChallengeRepositoryInterface $authChallengeRepository,
+        private readonly SendOtpService $sendOtpService,
+        private readonly VerifyOtpService $verifyOtpService,
+        private readonly TokenService $tokenService,
     ) {}
 
     public function register(array $data): OtpChallengeData
@@ -47,7 +50,7 @@ class AuthService
 
         return $this->sendOtpService->send(
             user: $user,
-            channelName: 'email',
+            method: OtpMethodEnum::OTP_EMAIL,
             context: OtpContextEnum::EMAIL_VERIFICATION
         );
     }
@@ -70,13 +73,9 @@ class AuthService
         $this->userRepository->resetFailedLoginAttempts($user);
 
         if ($user->two_fa) {
-            $otpChallengeData = $this->sendOtpService->send(
-                user: $user,
-                channelName: 'email',
-                context: OtpContextEnum::LOGIN
-            );
-
-            return AuthFlowResponseData::otpRequired($otpChallengeData);
+            return $this->twoFactorDriverManager
+                ->driver($user->two_fa_method)
+                ->beginChallenge($user, OtpContextEnum::LOGIN);
         }
 
         return AuthFlowResponseData::authenticated(
@@ -102,6 +101,19 @@ class AuthService
         };
     }
 
+    public function verifySecondFactor(
+        ?string $userId,
+        string $code,
+        ?string $context,
+        ?string $challengeToken = null
+    ): AuthFlowResponseData {
+        if ($challengeToken) {
+            return $this->verifyOtpAndHandleChallenge($challengeToken, $code);
+        }
+
+        return $this->verifyAuthenticatorSecondFactor($userId, $code, $context);
+    }
+
     public function forgotPassword(string $email): void
     {
         $user = $this->userRepository->findByEmail($email);
@@ -121,7 +133,7 @@ class AuthService
 
     public function resendOtp(string $challengeToken): OtpChallengeData
     {
-        $challenge = $this->oneTimePasswordRepository->findActiveByChallengeToken($challengeToken);
+        $challenge = $this->authChallengeRepository->findActiveByChallengeToken($challengeToken);
 
         if (!$challenge) {
             throw new InvalidOtpChallengeException();
@@ -129,10 +141,11 @@ class AuthService
 
         $user = $challenge->user;
         $context = OtpContextEnum::from($challenge->context);
+        $method = OtpMethodEnum::from($challenge->method);
 
         return $this->sendOtpService->send(
             user: $user,
-            channelName: $challenge->channel,
+            method: $method,
             context: $context
         );
     }
@@ -224,5 +237,53 @@ class AuthService
         $this->userRepository->verifyEmailAndActivate($user);
 
         return AuthFlowResponseData::emailVerified();
+    }
+
+    private function verifyAuthenticatorSecondFactor(
+        ?string $userId,
+        string $code,
+        ?string $context
+    ): AuthFlowResponseData {
+        if (!$userId || !$context) {
+            throw ValidationException::withMessages([
+                'verification' => ['The provided verification details are incomplete or invalid.'],
+            ]);
+        }
+
+        $user = $this->userRepository->findById($userId);
+
+        if (!$user) {
+            throw ValidationException::withMessages([
+                'user_id' => ['User not found.'],
+            ]);
+        }
+
+        $otpContext = OtpContextEnum::tryFrom($context);
+
+        if (!$otpContext) {
+            throw new UnsupportedOtpContextException();
+        }
+
+        $isValid = $this->twoFactorDriverManager
+            ->driver($user->two_fa_method)
+            ->verify(
+                user: $user,
+                code: $code,
+                context: $otpContext
+            );
+
+        if (!$isValid) {
+            throw ValidationException::withMessages([
+                'code' => ['The provided verification code is invalid.'],
+            ]);
+        }
+
+        return match ($otpContext) {
+            OtpContextEnum::LOGIN => AuthFlowResponseData::authenticated(
+                $this->finalizeLogin($user)
+            ),
+
+            default => throw new UnsupportedOtpContextException(),
+        };
     }
 }

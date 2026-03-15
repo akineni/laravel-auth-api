@@ -10,6 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "bacon/bacon-qr-code": "^3.0",
         "cloudinary-labs/cloudinary-laravel": "^2.3",
         "firebase/php-jwt": "^6.11",
         "knuckleswtf/scribe": "^5.8",
