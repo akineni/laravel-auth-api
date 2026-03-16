@@ -29,6 +29,12 @@ class VerifyOtpService
             throw new ExpiredOtpException();
         }
 
+        if ($this->authChallengeRepository->hasTooManyAttempts($challenge)) {
+            $this->invalidateChallenge($challenge);
+
+            throw new OtpVerificationException('This verification request has expired. Please request a new code.');
+        }
+
         $method = OtpMethodEnum::from($challenge->method);
 
         $isValid = match ($method) {
@@ -39,12 +45,21 @@ class VerifyOtpService
         };
 
         if (!$isValid) {
+            $this->authChallengeRepository->incrementAttempts($challenge);
+            $challenge->refresh();
+
+            if ($this->authChallengeRepository->hasTooManyAttempts($challenge)) {
+                $this->invalidateChallenge($challenge);
+
+                throw new OtpVerificationException('Too many invalid attempts. Please request a new code.');
+            }
+
             throw new OtpVerificationException('Invalid OTP.');
         }
 
         $this->authChallengeRepository->markChallengeVerified($challenge);
 
-        return $challenge;
+        return $challenge->refresh();
     }
 
     protected function verifyTotpChallenge(AuthChallenge $challenge, string $otp): bool
@@ -56,5 +71,12 @@ class VerifyOtpService
         }
 
         return $this->google2fa->verifyKey($user->two_fa_secret, $otp);
+    }
+
+    protected function invalidateChallenge(AuthChallenge $challenge): void
+    {
+        $challenge->update([
+            'verified_at' => now(),
+        ]);
     }
 }

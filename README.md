@@ -85,11 +85,13 @@ Features:
 
 ---
 
-## OTP Resend Protection
+# OTP & Verification Protection
 
-To prevent OTP abuse and email flooding, the API implements **two layers of protection**:
+To ensure security and prevent abuse, the API implements **three layers of protection** for verification flows.
 
-### 1. Resend Cooldown
+---
+
+## 1. OTP Resend Cooldown
 
 Users must wait a configurable amount of time before requesting another OTP.
 
@@ -99,7 +101,7 @@ Default configuration:
 OTP_RESEND_COOLDOWN_SECONDS=120
 ```
 
-Example response when cooldown is active:
+Example response:
 
 ```json
 {
@@ -117,7 +119,7 @@ This prevents users from repeatedly clicking the **Resend OTP** button.
 
 ---
 
-### 2. API Rate Limiting
+## 2. API Rate Limiting
 
 Laravel's throttle middleware protects endpoints from abuse.
 
@@ -144,14 +146,43 @@ If exceeded, the API returns:
 
 ---
 
-### Combined Protection
+## 3. Verification Attempt Limit
+
+Each verification challenge tracks the number of failed verification attempts.
+
+Default configuration:
+
+```
+OTP_MAX_VERIFICATION_ATTEMPTS=5
+```
+
+After exceeding the maximum attempts:
+
+- the challenge becomes invalid
+- the user must request a new verification code
+
+Example response:
+
+```json
+{
+  "status": "error",
+  "message": "Too many invalid attempts. Please request a new code."
+}
+```
+
+This prevents brute-force attacks on OTP or TOTP verification.
+
+---
+
+## Combined Protection
 
 | Protection | Purpose |
 |------|------|
-| Resend cooldown | Prevent rapid OTP requests |
-| API throttle | Prevent endpoint abuse |
+| Resend cooldown | Prevent rapid OTP resend abuse |
+| API throttle | Prevent endpoint flooding |
+| Attempt limit | Prevent OTP brute-force attacks |
 
-Together they ensure OTP endpoints remain secure and stable.
+Together they ensure verification endpoints remain secure and stable.
 
 ---
 
@@ -260,6 +291,7 @@ auth_challenges
 | `method` | Verification method |
 | `context` | Challenge purpose |
 | `code` | Stored OTP hash (nullable) |
+| `attempts` | Number of failed verification attempts |
 | `expires_at` | Challenge expiration |
 | `verified_at` | When challenge is completed |
 
@@ -423,6 +455,7 @@ View documentation:
 
 - OTP hashing
 - Challenge expiration
+- Verification attempt limits
 - Account lockout protection
 - Challenge-based verification
 - OTP resend cooldown protection

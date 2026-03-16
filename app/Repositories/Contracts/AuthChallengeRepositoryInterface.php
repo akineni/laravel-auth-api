@@ -43,4 +43,14 @@ interface AuthChallengeRepositoryInterface
      * Clear active challenges for a user and optional context.
      */
     public function clear(User $user, ?string $context = null): bool;
+
+    /**
+     * Increment failed verification attempts for a challenge.
+     */
+    public function incrementAttempts(AuthChallenge $challenge): bool;
+
+    /**
+     * Determine whether a challenge has exceeded the maximum allowed attempts.
+     */
+    public function hasTooManyAttempts(AuthChallenge $challenge): bool;
 }

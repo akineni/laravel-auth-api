@@ -71,4 +71,16 @@ class AuthChallengeRepository implements AuthChallengeRepositoryInterface
 
         return $query->delete() >= 0;
     }
+
+    public function incrementAttempts(AuthChallenge $challenge): bool
+    {
+        return $challenge->increment('attempts') > 0;
+    }
+
+    public function hasTooManyAttempts(AuthChallenge $challenge): bool
+    {
+        $maxAttempts = (int) config('otp.max_verification_attempts', 5);
+
+        return $challenge->attempts >= $maxAttempts;
+    }
 }

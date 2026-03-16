@@ -33,6 +33,10 @@ return new class extends Migration
             $table->string('context')
                 ->comment('Purpose of the challenge (login, email_verification, password_reset, disable_two_fa, etc).');
 
+            $table->unsignedTinyInteger('attempts')
+                ->default(0)
+                ->comment('Number of failed verification attempts for this challenge.');
+
             $table->timestamp('expires_at');
             $table->timestamp('verified_at')->nullable();
 

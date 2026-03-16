@@ -69,4 +69,16 @@ return [
     */
     'resend_cooldown_seconds' => env('OTP_RESEND_COOLDOWN_SECONDS', 120),
 
+    /*
+    |--------------------------------------------------------------------------
+    | OTP Verification Attempt Limit
+    |--------------------------------------------------------------------------
+    |
+    | Defines the maximum number of failed verification attempts allowed for
+    | a single auth challenge before it becomes invalid and a new challenge
+    | must be requested.
+    |
+    */
+    'max_verification_attempts' => env('OTP_MAX_VERIFICATION_ATTEMPTS', 5),
+
 ];
