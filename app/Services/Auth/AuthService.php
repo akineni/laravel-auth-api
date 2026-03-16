@@ -12,7 +12,7 @@ use App\Exceptions\Auth\{
     InvalidResetTokenException,
     UnsupportedOtpContextException
 };
-use App\Models\User;
+use App\Models\{User, AuthChallenge};
 use App\Notifications\ResetPasswordNotification;
 use App\Repositories\Contracts\{
     AuthChallengeRepositoryInterface,
@@ -133,20 +133,14 @@ class AuthService
 
     public function resendOtp(string $challengeToken): OtpChallengeData
     {
-        $challenge = $this->authChallengeRepository->findActiveByChallengeToken($challengeToken);
+        $challenge = $this->resolveChallenge($challengeToken);
 
-        if (!$challenge) {
-            throw new InvalidOtpChallengeException();
-        }
-
-        $user = $challenge->user;
-        $context = OtpContextEnum::from($challenge->context);
-        $method = OtpMethodEnum::from($challenge->method);
+        $this->ensureResendCooldownHasPassed($challenge);
 
         return $this->sendOtpService->send(
-            user: $user,
-            method: $method,
-            context: $context
+            user: $challenge->user,
+            method: OtpMethodEnum::from($challenge->method),
+            context: OtpContextEnum::from($challenge->context)
         );
     }
 
@@ -237,6 +231,35 @@ class AuthService
         $this->userRepository->verifyEmailAndActivate($user);
 
         return AuthFlowResponseData::emailVerified();
+    }
+
+    protected function resolveChallenge(string $challengeToken): AuthChallenge
+    {
+        $challenge = $this->authChallengeRepository
+            ->findActiveByChallengeToken($challengeToken);
+
+        if (!$challenge) {
+            throw new InvalidOtpChallengeException();
+        }
+
+        return $challenge;
+    }
+
+    protected function ensureResendCooldownHasPassed(AuthChallenge $challenge): void
+    {
+        $cooldownSeconds = (int) config('otp.resend_cooldown_seconds');
+
+        $elapsed = (int) $challenge->created_at->diffInSeconds(now(), true);
+
+        if ($elapsed >= $cooldownSeconds) {
+            return;
+        }
+
+        $remaining = $cooldownSeconds - $elapsed;
+
+        throw ValidationException::withMessages([
+            'otp' => ["Please wait {$remaining} seconds before requesting another code."],
+        ]);
     }
 
     private function verifyAuthenticatorSecondFactor(

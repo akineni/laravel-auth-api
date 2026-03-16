@@ -7,6 +7,7 @@ use App\Helpers\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -87,6 +88,26 @@ return function ($exceptions) {
         );
     });
 
+    $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
+        $retryAfter = $e->getHeaders()['Retry-After'] ?? null;
+
+        $message = $retryAfter
+            ? "Too many attempts. Please try again in {$retryAfter} seconds."
+            : 'Too many attempts. Please try again later.';
+
+        return ApiResponse::error($message, 429);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fallback Exception Handler
+    |--------------------------------------------------------------------------
+    |
+    | This must remain the LAST exception renderer. It acts as a catch-all
+    | for any unhandled exceptions in the application. Any handlers placed
+    | after this will never be reached.
+    |
+    */
     $exceptions->render(function (Throwable $e, Request $request) {
         Log::error($e->getMessage(), ['exception' => $e]);
 

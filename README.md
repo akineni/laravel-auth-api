@@ -85,6 +85,76 @@ Features:
 
 ---
 
+## OTP Resend Protection
+
+To prevent OTP abuse and email flooding, the API implements **two layers of protection**:
+
+### 1. Resend Cooldown
+
+Users must wait a configurable amount of time before requesting another OTP.
+
+Default configuration:
+
+```
+OTP_RESEND_COOLDOWN_SECONDS=120
+```
+
+Example response when cooldown is active:
+
+```json
+{
+  "status": "error",
+  "message": "Please wait 98 seconds before requesting another code.",
+  "errors": {
+    "otp": [
+      "Please wait 98 seconds before requesting another code."
+    ]
+  }
+}
+```
+
+This prevents users from repeatedly clicking the **Resend OTP** button.
+
+---
+
+### 2. API Rate Limiting
+
+Laravel's throttle middleware protects endpoints from abuse.
+
+Example route protection:
+
+```php
+Route::post('resend-otp', 'resendOtp')
+    ->middleware('throttle:3,15');
+```
+
+Meaning:
+
+- Maximum **3 requests**
+- Within **15 minutes**
+
+If exceeded, the API returns:
+
+```json
+{
+  "status": "error",
+  "message": "Too many attempts. Please try again later."
+}
+```
+
+---
+
+### Combined Protection
+
+| Protection | Purpose |
+|------|------|
+| Resend cooldown | Prevent rapid OTP requests |
+| API throttle | Prevent endpoint abuse |
+
+Together they ensure OTP endpoints remain secure and stable.
+
+---
+
 ## Role-Based Access Control
 
 Powered by **Spatie Laravel Permission**.
@@ -355,6 +425,8 @@ View documentation:
 - Challenge expiration
 - Account lockout protection
 - Challenge-based verification
+- OTP resend cooldown protection
+- API rate limiting
 - Single-use verification tokens
 - JWT refresh mechanism
 - Password reset protection

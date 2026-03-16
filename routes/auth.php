@@ -9,7 +9,9 @@ Route::prefix('auth')->group(function () {
         Route::post('register', 'register')->name('auth.register');
         Route::post('login', 'login')->name('auth.login');
         Route::post('verify-otp', 'verifyOtp')->name('auth.verify-otp');
-        Route::post('resend-otp', 'resendOtp')->name('auth.resend-otp');
+        Route::post('resend-otp', 'resendOtp')
+            ->middleware('throttle:3,15') // Allow max 3 requests every 15 minutes per user/IP
+            ->name('auth.resend-otp');
         Route::post('forgot-password', 'forgotPassword')->name('auth.forgot-password');
         Route::post('reset-password', 'resetPassword')->name('auth.reset-password');
 

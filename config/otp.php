@@ -57,4 +57,16 @@ return [
 
     'bypass_verification' => env('OTP_BYPASS_VERIFICATION', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | OTP Resend Cooldown
+    |--------------------------------------------------------------------------
+    |
+    | Defines the minimum number of seconds a user must wait before requesting
+    | another OTP for the same verification context (e.g. login, email verification,
+    | password reset). This helps prevent OTP spamming and email/SMS flooding.
+    |
+    */
+    'resend_cooldown_seconds' => env('OTP_RESEND_COOLDOWN_SECONDS', 120),
+
 ];
