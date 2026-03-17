@@ -4,9 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
-use App\Models\Concerns\HasCommonFilterScopes;
-use App\Models\Concerns\HasSearchScope;
-use App\Traits\HasFullName;
+use App\Models\Concerns\{HasCommonFilterScopes, HasSearchScope, HasUsername, HasFullName};
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -112,7 +110,8 @@ class User extends Authenticatable implements JWTSubject
         SoftDeletes,
         HasFullName,
         HasSearchScope,
-        HasCommonFilterScopes;
+        HasCommonFilterScopes,
+        HasUsername;
 
     protected $guard_name = 'api';
 

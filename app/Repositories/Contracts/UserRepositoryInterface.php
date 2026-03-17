@@ -30,6 +30,14 @@ interface UserRepositoryInterface
     public function findByEmail(string $email, bool $includeTrashed = false): ?User;
 
     /**
+     * Find a user by username.
+     *
+     * @param string $username
+     * @param bool $includeTrashed Include soft deleted users
+     */
+    public function findByUsername(string $username, bool $includeTrashed = false): ?User;
+
+    /**
      * Reset failed login attempts.
      */
     public function resetFailedLoginAttempts(User $user): bool;

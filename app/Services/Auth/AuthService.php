@@ -57,7 +57,9 @@ class AuthService
 
     public function login(array $credentials): AuthFlowResponseData
     {
-        $user = $this->userRepository->findByEmail($credentials['email']);
+        $login = trim($credentials['login']);
+
+        $user = $this->findUserByLogin($login);
 
         if (!$user) {
             $this->handleFailedLogin();
@@ -157,6 +159,22 @@ class AuthService
             method: OtpMethodEnum::OTP_SMS,
             context: OtpContextEnum::PHONE_VERIFICATION
         );
+    }
+
+    protected function findUserByLogin(string $login): ?User
+    {
+        $identifier = $this->resolveLoginIdentifier($login);
+
+        return match ($identifier) {
+            'email' => $this->userRepository->findByEmail($login),
+            'username' => $this->userRepository->findByUsername($login),
+            default => null,
+        };
+    }
+
+    protected function resolveLoginIdentifier(string $login): string
+    {
+        return filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
     }
 
     protected function validateResetRequest(string $email, string $token): User

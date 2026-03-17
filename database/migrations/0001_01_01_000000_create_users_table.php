@@ -15,6 +15,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('firstname');
             $table->string('lastname');
+            $table->string('username')->unique()->index();
             $table->string('avatar')->nullable();
 
             $table->enum('gender', [

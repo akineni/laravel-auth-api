@@ -17,11 +17,13 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         $faker = Faker::create();
+        $numOfUsers = random_int(5, 7);
 
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 5; $i++) {
             User::create([
                 'firstname' => $faker->firstName(),
                 'lastname' => $faker->lastName(),
+                'username' => $faker->userName(),
                 'avatar' => null,
                 'gender' => $faker->randomElement(['male', 'female', 'other']),
                 'phone_number' => $faker->phoneNumber(),
@@ -43,6 +45,6 @@ class UserSeeder extends Seeder
             ]);
         }
 
-        $this->command->info('Seeded 10 users');
+        $this->command->info("Seeded {$numOfUsers} users");
     }
 }

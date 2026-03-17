@@ -17,25 +17,20 @@ class UserRepository implements UserRepositoryInterface
 
     public function findById(string $id, bool $includeTrashed = false): ?User
     {
-        $query = User::query();
-
-        if ($includeTrashed) {
-            $query->withTrashed();
-        }
-
-        return $query->find($id);
+        return $this->baseQuery($includeTrashed)->find($id);
     }
 
     public function findByEmail(string $email, bool $includeTrashed = false): ?User
     {
-        $query = User::query();
-
-        if ($includeTrashed) {
-            $query->withTrashed();
-        }
-
-        return $query
+        return $this->baseQuery($includeTrashed)
             ->where('email', $email)
+            ->first();
+    }
+
+    public function findByUsername(string $username, bool $includeTrashed = false): ?User
+    {
+        return $this->baseQuery($includeTrashed)
+            ->where('username', $username)
             ->first();
     }
 
@@ -146,5 +141,16 @@ class UserRepository implements UserRepositoryInterface
         $user->loadMissing($relations);
 
         return $user;
+    }
+
+    protected function baseQuery(bool $includeTrashed = false)
+    {
+        $query = User::query();
+
+        if ($includeTrashed) {
+            $query->withTrashed();
+        }
+
+        return $query;
     }
 }
