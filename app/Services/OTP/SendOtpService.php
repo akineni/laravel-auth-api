@@ -7,8 +7,7 @@ use App\Enums\{OtpContextEnum, OtpMethodEnum};
 use App\Exceptions\Auth\UnsupportedOtpMethodException;
 use App\Models\User;
 use App\Repositories\Contracts\AuthChallengeRepositoryInterface;
-use App\Services\OTP\Contracts\OtpChannelInterface;
-use App\Services\OTP\Contracts\OtpGeneratorInterface;
+use App\Services\OTP\Contracts\{OtpChannelInterface, OtpGeneratorInterface};
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 

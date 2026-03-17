@@ -22,7 +22,7 @@ use App\Repositories\Contracts\{
 use App\Services\Auth\TwoFactor\TwoFactorDriverManager;
 use App\Services\OTP\{SendOtpService, VerifyOtpService};
 use App\Traits\CompletesLogin;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\{Auth, Hash};
 use Illuminate\Validation\ValidationException;
 
 class AuthService
@@ -96,22 +96,10 @@ class AuthService
             OtpContextEnum::EMAIL_VERIFICATION->value => $this->completeEmailVerification($user),
 
             OtpContextEnum::PASSWORD_RESET->value => AuthFlowResponseData::passwordResetVerified(),
+            OtpContextEnum::PHONE_VERIFICATION->value => AuthFlowResponseData::phoneVerified(),
 
             default => throw new UnsupportedOtpContextException(),
         };
-    }
-
-    public function verifySecondFactor(
-        ?string $userId,
-        string $code,
-        ?string $context,
-        ?string $challengeToken = null
-    ): AuthFlowResponseData {
-        if ($challengeToken) {
-            return $this->verifyOtpAndHandleChallenge($challengeToken, $code);
-        }
-
-        return $this->verifyAuthenticatorSecondFactor($userId, $code, $context);
     }
 
     public function forgotPassword(string $email): void
@@ -160,6 +148,15 @@ class AuthService
         /** @var \Illuminate\Contracts\Auth\Guard|\Illuminate\Contracts\Auth\StatefulGuard $auth */
         $auth = auth();
         $auth->logout();
+    }
+
+    public function sendPhoneOtp(): OtpChallengeData
+    {
+        return $this->sendOtpService->send(
+            user: Auth::user(),
+            method: OtpMethodEnum::OTP_SMS,
+            context: OtpContextEnum::PHONE_VERIFICATION
+        );
     }
 
     protected function validateResetRequest(string $email, string $token): User
@@ -260,53 +257,5 @@ class AuthService
         throw ValidationException::withMessages([
             'otp' => ["Please wait {$remaining} seconds before requesting another code."],
         ]);
-    }
-
-    private function verifyAuthenticatorSecondFactor(
-        ?string $userId,
-        string $code,
-        ?string $context
-    ): AuthFlowResponseData {
-        if (!$userId || !$context) {
-            throw ValidationException::withMessages([
-                'verification' => ['The provided verification details are incomplete or invalid.'],
-            ]);
-        }
-
-        $user = $this->userRepository->findById($userId);
-
-        if (!$user) {
-            throw ValidationException::withMessages([
-                'user_id' => ['User not found.'],
-            ]);
-        }
-
-        $otpContext = OtpContextEnum::tryFrom($context);
-
-        if (!$otpContext) {
-            throw new UnsupportedOtpContextException();
-        }
-
-        $isValid = $this->twoFactorDriverManager
-            ->driver($user->two_fa_method)
-            ->verify(
-                user: $user,
-                code: $code,
-                context: $otpContext
-            );
-
-        if (!$isValid) {
-            throw ValidationException::withMessages([
-                'code' => ['The provided verification code is invalid.'],
-            ]);
-        }
-
-        return match ($otpContext) {
-            OtpContextEnum::LOGIN => AuthFlowResponseData::authenticated(
-                $this->finalizeLogin($user)
-            ),
-
-            default => throw new UnsupportedOtpContextException(),
-        };
     }
 }

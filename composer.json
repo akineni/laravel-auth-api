@@ -20,6 +20,7 @@
         "laravel/tinker": "^2.10.1",
         "pragmarx/google2fa": "^9.0",
         "spatie/laravel-permission": "^6.23",
+        "twilio/sdk": "^8.11",
         "tymon/jwt-auth": "^2.2"
     },
     "require-dev": {

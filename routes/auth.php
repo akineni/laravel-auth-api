@@ -16,6 +16,8 @@ Route::prefix('auth')->group(function () {
         Route::post('reset-password', 'resetPassword')->name('auth.reset-password');
 
         Route::middleware('auth:api')->group(function () {
+            Route::post('send-phone-otp', 'sendPhoneOtp')->name('auth.send-phone-otp');
+            
             Route::post('refresh-token', 'refreshToken')->name('auth.refresh-token');
             Route::post('logout', 'logout')->name('auth.logout');
         });

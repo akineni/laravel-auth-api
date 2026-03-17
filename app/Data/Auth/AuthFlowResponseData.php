@@ -35,6 +35,14 @@ final readonly class AuthFlowResponseData
         );
     }
 
+    public static function phoneVerified(): self
+    {
+        return new self(
+            message: 'Phone number verified successfully.',
+            data: null,
+        );
+    }
+
     public static function passwordResetVerified(): self
     {
         return new self(

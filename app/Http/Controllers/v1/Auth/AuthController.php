@@ -171,4 +171,22 @@ class AuthController extends Controller
 
         return ApiResponse::success('User logged out successfully');
     }
+
+    /**
+     * Test Send Phone OTP
+     *
+     * Test send the phone OTP
+     *
+     * @group Authentication
+     * @authenticated
+     */
+    public function sendPhoneOtp()
+    {
+        $otpChallengeData = $this->authService->sendPhoneOtp();
+
+        return ApiResponse::success(
+            'OTP sent to your phone number.',
+            $otpChallengeData
+        );
+    }
 }
