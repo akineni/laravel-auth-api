@@ -13,6 +13,8 @@ class TokenService
 
     public function issue(User $user): string
     {
+        $this->authSessionService->revokeExistingSessions($user);
+
         $session = $this->authSessionService->create($user, request());
 
         return JWTAuth::claims([

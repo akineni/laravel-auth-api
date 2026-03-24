@@ -22,6 +22,13 @@ class AuthSessionService
         ]);
     }
 
+    public function revokeExistingSessions(User $user): int
+    {
+        return $this->authSessionRepository->revokeActiveByUserId(
+            (string) $user->getKey()
+        );
+    }
+
     public function validate(string $userId, string $sessionId): AuthSession
     {
         $session = $this->authSessionRepository->findByUserIdAndId($userId, $sessionId);
