@@ -43,10 +43,21 @@ final readonly class AuthFlowResponseData
         );
     }
 
-    public static function passwordResetVerified(): self
+    public static function passwordResetAuthorized(string $token, string $email): self
     {
         return new self(
             message: 'OTP verified successfully. You may now reset your password.',
+            data: [
+                'token' => $token,
+                'email' => $email,
+            ],
+        );
+    }
+
+    public static function passwordResetLinkSent(): self
+    {
+        return new self(
+            message: 'If an account with that email exists, a password reset link has been sent.',
             data: null,
         );
     }

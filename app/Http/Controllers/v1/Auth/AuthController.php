@@ -90,10 +90,11 @@ class AuthController extends Controller
     {
         $validated = $request->validated();
 
-        $this->authService->forgotPassword($validated['email']);
+        $authFlowResponseData = $this->authService->forgotPassword($validated['email']);
 
         return ApiResponse::success(
-            'If an account with that email exists, a password reset link has been sent.'
+            $authFlowResponseData->message,
+            $authFlowResponseData->data ?? null
         );
     }
 

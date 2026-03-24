@@ -116,4 +116,22 @@ return [
     */
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Password Reset Flow
+    |--------------------------------------------------------------------------
+    |
+    | This option controls how the password reset process is handled.
+    | You may choose between sending a reset link or an OTP code.
+    |
+    | Supported values:
+    | - url: Sends a password reset link to the user's email (default Laravel behavior)
+    | - otp: Sends a one-time password (OTP) for password reset verification
+    |
+    | This is useful for supporting multiple clients (e.g., web vs mobile)
+    | or switching strategies without changing application logic.
+    |
+    */
+    'password_reset_flow' => env('PASSWORD_RESET_FLOW', 'url'),
 ];

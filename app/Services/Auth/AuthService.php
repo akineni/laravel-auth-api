@@ -97,20 +97,32 @@ class AuthService
 
             OtpContextEnum::EMAIL_VERIFICATION->value => $this->completeEmailVerification($user),
 
-            OtpContextEnum::PASSWORD_RESET->value => AuthFlowResponseData::passwordResetVerified(),
+            OtpContextEnum::PASSWORD_RESET->value => $this->authorizePasswordReset($user),
+
             OtpContextEnum::PHONE_VERIFICATION->value => AuthFlowResponseData::phoneVerified(),
 
             default => throw new UnsupportedOtpContextException(),
         };
     }
 
-    public function forgotPassword(string $email): void
+    public function forgotPassword(string $email): AuthFlowResponseData
     {
         $user = $this->userRepository->findByEmail($email);
 
-        if ($user) {
-            $this->sendPasswordResetLink($user);
+        if (!$user) {
+            return AuthFlowResponseData::passwordResetLinkSent();
         }
+
+        $flow = config('auth.password_reset_flow', 'url');
+
+        return match ($flow) {
+            'otp' => AuthFlowResponseData::otpRequired(
+                $this->sendPasswordResetOtp($user),
+                'If an account with that email exists, an OTP has been sent.'
+            ),
+            'url' => $this->sendPasswordResetLink($user),
+            default => $this->sendPasswordResetLink($user),
+        };
     }
 
     public function resetPassword(string $email, string $token, string $password): void
@@ -192,10 +204,23 @@ class AuthService
         return $user;
     }
 
-    protected function sendPasswordResetLink(User $user): void
+    protected function sendPasswordResetOtp(User $user): OtpChallengeData
+    {
+        return $this->sendOtpService->send(
+            user: $user,
+            method: OtpMethodEnum::OTP_EMAIL,
+            context: OtpContextEnum::PASSWORD_RESET
+        );
+    }
+
+    protected function sendPasswordResetLink(User $user): AuthFlowResponseData
     {
         $token = $this->passwordResetRepository->create($user);
         $callbackUrl = config('frontend.reset_password_url');
+
+        if (!$callbackUrl) {
+            throw new \RuntimeException('Reset password URL is not configured.');
+        }
 
         $separator = str_contains($callbackUrl, '?') ? '&' : '?';
 
@@ -205,6 +230,8 @@ class AuthService
         ]);
 
         $user->notify(new ResetPasswordNotification($resetUrl));
+
+        return AuthFlowResponseData::passwordResetLinkSent();
     }
 
     protected function checkCredentials(?User $user, string $password): bool
@@ -246,6 +273,16 @@ class AuthService
         $this->userRepository->verifyEmailAndActivate($user);
 
         return AuthFlowResponseData::emailVerified();
+    }
+
+    protected function authorizePasswordReset(User $user): AuthFlowResponseData
+    {
+        $token = $this->passwordResetRepository->create($user);
+
+        return AuthFlowResponseData::passwordResetAuthorized(
+            $token,
+            $user->email
+        );
     }
 
     protected function resolveChallenge(string $challengeToken): AuthChallenge
