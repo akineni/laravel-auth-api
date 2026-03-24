@@ -15,7 +15,7 @@ Route::prefix('auth')->group(function () {
         Route::post('forgot-password', 'forgotPassword')->name('auth.forgot-password');
         Route::post('reset-password', 'resetPassword')->name('auth.reset-password');
 
-        Route::middleware('auth:api')->group(function () {
+        Route::middleware(['auth:api', 'jwt.session.activity'])->group(function () {
             Route::post('send-phone-otp', 'sendPhoneOtp')->name('auth.send-phone-otp');
             
             Route::post('refresh-token', 'refreshToken')->name('auth.refresh-token');

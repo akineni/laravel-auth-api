@@ -24,6 +24,7 @@ use App\Services\OTP\{SendOtpService, VerifyOtpService};
 use App\Traits\CompletesLogin;
 use Illuminate\Support\Facades\{Auth, Hash};
 use Illuminate\Validation\ValidationException;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthService
 {
@@ -40,6 +41,7 @@ class AuthService
         private readonly SendOtpService $sendOtpService,
         private readonly VerifyOtpService $verifyOtpService,
         private readonly TokenService $tokenService,
+        private readonly AuthSessionService $authSessionService,
     ) {}
 
     public function register(array $data): OtpChallengeData
@@ -161,6 +163,21 @@ class AuthService
     {
         /** @var \Illuminate\Contracts\Auth\Guard|\Illuminate\Contracts\Auth\StatefulGuard $auth */
         $auth = auth();
+
+        /** @var \App\Models\User|null $user */
+        $user = $auth->user();
+
+        if ($user) {
+            $sessionId = JWTAuth::parseToken()->getPayload()->get('sid');
+
+            if ($sessionId) {
+                $this->authSessionService->revokeByUserAndSessionId(
+                    userId: (string) $user->getKey(),
+                    sessionId: (string) $sessionId
+                );
+            }
+        }
+
         $auth->logout();
     }
 

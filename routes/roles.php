@@ -4,7 +4,7 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\v1\RoleController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth:api')
+Route::middleware(['auth:api', 'jwt.session.activity'])
     ->prefix('roles')
     ->name('roles.')
     ->group(function () {

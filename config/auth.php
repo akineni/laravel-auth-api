@@ -134,4 +134,15 @@ return [
     |
     */
     'password_reset_flow' => env('PASSWORD_RESET_FLOW', 'url'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Session Idle Timeout
+    |--------------------------------------------------------------------------
+    |
+    | This value defines the number of minutes an authenticated session may
+    | remain inactive before it is considered expired.
+    |
+    */
+    'session_idle_timeout_minutes' => env('SESSION_IDLE_TIMEOUT_MINUTES', 30),
 ];

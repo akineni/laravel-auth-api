@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Repositories\Contracts\AuthSessionRepositoryInterface;
 use App\Repositories\Contracts\PasswordResetTokenRepositoryInterface;
 use App\Repositories\Contracts\RoleRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\Contracts\UserRoleRepositoryInterface;
+use App\Repositories\Eloquent\AuthSessionRepository;
 use App\Repositories\Eloquent\PasswordResetTokenRepository;
 use App\Repositories\Eloquent\RoleRepository;
 use App\Repositories\Eloquent\UserRepository;
@@ -37,6 +39,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             UserRoleRepositoryInterface::class,
             UserRoleRepository::class
+        );
+
+        $this->app->bind(
+            AuthSessionRepositoryInterface::class,
+            AuthSessionRepository::class
         );
     }
 

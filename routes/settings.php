@@ -3,7 +3,7 @@
 use App\Http\Controllers\v1\User\TwoFactorAuthController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth:api')
+Route::middleware(['auth:api', 'jwt.session.activity'])
     ->prefix('user')
     ->group(function () {
         Route::prefix('two-fa')->group(function () {
