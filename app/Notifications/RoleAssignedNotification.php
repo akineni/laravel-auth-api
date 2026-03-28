@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Enums\NotificationTypeEnum;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -33,8 +34,10 @@ class RoleAssignedNotification extends Notification implements ShouldQueue
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $type = NotificationTypeEnum::ROLE_ASSIGNED;
+
         return (new MailMessage)
-            ->subject('Role Assigned')
+            ->subject($type->label())
             ->greeting('Hello ' . ($notifiable->firstname ?? 'there') . ',')
             ->line("A new role ({$this->roleName}) has been assigned to your account.");
     }
@@ -46,11 +49,13 @@ class RoleAssignedNotification extends Notification implements ShouldQueue
      */
     public function toArray(object $notifiable): array
     {
+        $type = NotificationTypeEnum::ROLE_ASSIGNED;
+
         return [
-            'type' => 'role_assigned',
-            'title' => 'Role assigned',
+            'type' => $type->value,
+            'title' => $type->label(),
             'message' => "A new role ({$this->roleName}) has been assigned to your account.",
-            'severity' => 'info',
+            'severity' => $type->severity(),
             'action_url' => null,
             'meta' => [
                 'role_name' => $this->roleName,

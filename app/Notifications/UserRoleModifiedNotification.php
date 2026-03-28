@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Enums\NotificationTypeEnum;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -37,12 +38,12 @@ class UserRoleModifiedNotification extends Notification implements ShouldQueue
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $verb = $this->resolveVerb();
+        $type = NotificationTypeEnum::USER_ROLE_MODIFIED;
 
         $mail = (new MailMessage)
-            ->subject('User Role Modified')
+            ->subject($type->label())
             ->greeting('Hello ' . ($notifiable->firstname ?? 'there') . ',')
-            ->line("Role {$this->roleName} was {$verb} {$this->subject->fullname}.")
+            ->line($this->message())
             ->line("Affected user email: {$this->subject->email}");
 
         if ($this->actor) {
@@ -60,13 +61,13 @@ class UserRoleModifiedNotification extends Notification implements ShouldQueue
      */
     public function toArray(object $notifiable): array
     {
-        $verb = $this->resolveVerb();
+        $type = NotificationTypeEnum::USER_ROLE_MODIFIED;
 
         return [
-            'type' => 'user_role_modified',
-            'title' => 'User role modified',
-            'message' => "Role {$this->roleName} was {$verb} {$this->subject->fullname}.",
-            'severity' => 'info',
+            'type' => $type->value,
+            'title' => $type->label(),
+            'message' => $this->message(),
+            'severity' => $type->severity(),
             'action_url' => null,
             'meta' => [
                 'action' => $this->action,
@@ -79,6 +80,11 @@ class UserRoleModifiedNotification extends Notification implements ShouldQueue
                 'actor_email' => $this->actor?->email,
             ],
         ];
+    }
+
+    protected function message(): string
+    {
+        return "Role {$this->roleName} was {$this->resolveVerb()} {$this->subject->fullname}.";
     }
 
     protected function resolveVerb(): string

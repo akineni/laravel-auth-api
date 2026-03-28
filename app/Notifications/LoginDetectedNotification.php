@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Enums\NotificationTypeEnum;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -34,9 +35,11 @@ class LoginDetectedNotification extends Notification implements ShouldQueue
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $type = NotificationTypeEnum::LOGIN_DETECTED;
+
         $mail = (new MailMessage)
-            ->subject('New Login Detected')
-            ->greeting('Hello ' . $notifiable->firstname . ',')
+            ->subject($type->label())
+            ->greeting('Hello ' . ($notifiable->firstname ?? 'there') . ',')
             ->line('We detected a successful login to your account.');
 
         if (! empty($this->context['logged_in_at'])) {
@@ -73,11 +76,13 @@ class LoginDetectedNotification extends Notification implements ShouldQueue
      */
     public function toArray(object $notifiable): array
     {
+        $type = NotificationTypeEnum::LOGIN_DETECTED;
+
         return [
-            'type' => 'login_detected',
-            'title' => 'New login detected',
+            'type' => $type->value,
+            'title' => $type->label(),
             'message' => 'A successful login to your account was detected.',
-            'severity' => 'info',
+            'severity' => $type->severity(),
             'action_url' => null,
             'meta' => [
                 'logged_in_at' => $this->context['logged_in_at'] ?? now()->toIso8601String(),

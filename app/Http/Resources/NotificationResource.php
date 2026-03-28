@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\NotificationTypeEnum;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -16,6 +17,7 @@ class NotificationResource extends JsonResource
     {
         $data = is_array($this->data) ? $this->data : [];
         $notifiable = $this->whenLoaded('notifiable');
+        $enumType = NotificationTypeEnum::fromValue($data['type'] ?? null);
 
         return [
             'id' => $this->id,
@@ -31,9 +33,9 @@ class NotificationResource extends JsonResource
                 'status' => $this->resolveNotifiableAttribute($notifiable, 'status'),
             ],
             'type' => $data['type'] ?? class_basename($this->type),
-            'title' => $data['title'] ?? null,
+            'title' => $data['title'] ?? $enumType?->label() ?? class_basename($this->type),
             'message' => $data['message'] ?? null,
-            'severity' => $data['severity'] ?? 'info',
+            'severity' => $data['severity'] ?? $enumType?->severity() ?? 'info',
             'action_url' => $data['action_url'] ?? null,
             'meta' => $data['meta'] ?? [],
             'read_at' => optional($this->read_at)?->toDateTimeString(),

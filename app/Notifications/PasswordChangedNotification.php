@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Enums\NotificationTypeEnum;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -34,9 +35,11 @@ class PasswordChangedNotification extends Notification implements ShouldQueue
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $type = NotificationTypeEnum::PASSWORD_CHANGED;
+
         return (new MailMessage)
-            ->subject('Password Changed')
-            ->greeting('Hello ' . $notifiable->firstname . ',')
+            ->subject($type->label())
+            ->greeting('Hello ' . ($notifiable->firstname ?? 'there') . ',')
             ->line('Your account password was changed successfully.')
             ->line('If this was not you, please contact support immediately.');
     }
@@ -48,11 +51,13 @@ class PasswordChangedNotification extends Notification implements ShouldQueue
      */
     public function toArray(object $notifiable): array
     {
+        $type = NotificationTypeEnum::PASSWORD_CHANGED;
+
         return [
-            'type' => 'password_changed',
-            'title' => 'Password changed',
+            'type' => $type->value,
+            'title' => $type->label(),
             'message' => 'Your account password was changed successfully.',
-            'severity' => 'info',
+            'severity' => $type->severity(),
             'action_url' => null,
             'meta' => [
                 'changed_at' => now()->toIso8601String(),

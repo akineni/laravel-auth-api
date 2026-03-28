@@ -2,12 +2,13 @@
 
 namespace App\Notifications;
 
+use App\Enums\NotificationTypeEnum;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class SecurityAlertNotification extends Notification
+class SecurityAlertNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -34,9 +35,11 @@ class SecurityAlertNotification extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $type = NotificationTypeEnum::SECURITY_ALERT;
+
         return (new MailMessage)
-            ->subject('Security Alert')
-            ->greeting('Hello ' . $notifiable->firstname . ',')
+            ->subject($type->label())
+            ->greeting('Hello ' . ($notifiable->firstname ?? 'there') . ',')
             ->line($this->message)
             ->line('If this activity was not performed by you, please contact support immediately.');
     }
@@ -48,11 +51,13 @@ class SecurityAlertNotification extends Notification
      */
     public function toArray(object $notifiable): array
     {
+        $type = NotificationTypeEnum::SECURITY_ALERT;
+
         return [
-            'type' => 'security_alert',
-            'title' => 'Security alert',
+            'type' => $type->value,
+            'title' => $type->label(),
             'message' => $this->message,
-            'severity' => 'warning',
+            'severity' => $type->severity(),
             'action_url' => null,
             'meta' => $this->meta,
         ];

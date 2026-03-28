@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Enums\NotificationTypeEnum;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -33,8 +34,10 @@ class RoleRevokedNotification extends Notification implements ShouldQueue
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $type = NotificationTypeEnum::ROLE_REVOKED;
+
         return (new MailMessage)
-            ->subject('Role Revoked')
+            ->subject($type->label())
             ->greeting('Hello ' . ($notifiable->firstname ?? 'there') . ',')
             ->line("A role ({$this->roleName}) has been removed from your account.")
             ->line('If you were not expecting this change, please contact support.');
@@ -47,11 +50,13 @@ class RoleRevokedNotification extends Notification implements ShouldQueue
      */
     public function toArray(object $notifiable): array
     {
+        $type = NotificationTypeEnum::ROLE_REVOKED;
+
         return [
-            'type' => 'role_revoked',
-            'title' => 'Role revoked',
+            'type' => $type->value,
+            'title' => $type->label(),
             'message' => "A role ({$this->roleName}) has been removed from your account.",
-            'severity' => 'warning',
+            'severity' => $type->severity(),
             'action_url' => null,
             'meta' => [
                 'role_name' => $this->roleName,
