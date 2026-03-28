@@ -2,11 +2,12 @@
 
 namespace App\Services\User;
 
-use App\Enums\SignupSourceEnum;
-use App\Enums\UserStatusEnum;
+use App\Enums\{RoleModificationContextEnum, SignupSourceEnum, UserStatusEnum};
+use App\Events\RoleModified;
 use App\Exceptions\ConflictException;
 use App\Helpers\FileUploadHelper;
 use App\Models\User;
+use App\Notifications\PasswordChangedNotification;
 use App\Notifications\UserActivationNotification;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Auth\AuthService;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\Collection;
 
 class UserService
 {
@@ -67,6 +69,11 @@ class UserService
         });
 
         $user->notify(new UserActivationNotification());
+
+        $this->dispatchAssignedRoleEventsForUser(
+            $user,
+            RoleModificationContextEnum::USER_CREATION
+        );
 
         return $user->fresh()->loadMissing('roles');
     }
@@ -153,6 +160,8 @@ class UserService
     {
         $this->userRepository->updatePassword($user, $newPassword, false);
 
+        $user->notify(new PasswordChangedNotification());
+
         $this->authService->logout();
     }
 
@@ -161,23 +170,119 @@ class UserService
      */
     public function update(User $user, array $data): User
     {
+        $this->updateUserDetails($user, $data);
+        $this->syncUserRoles($user, $data);
+        $this->updateUserAvatar($user, $data);
+
+        return $user->fresh();
+    }
+
+    /**
+     * Retrieve admin users with pagination.
+     */
+    public function getAdminUsersPaginated(array $filters = [])
+    {
+        return $this->userRepository->paginateAdmins($filters);
+    }
+
+    protected function dispatchAssignedRoleEventsForUser(
+        User $user,
+        ?RoleModificationContextEnum $context = null
+    ): void {
+        $user->loadMissing('roles');
+
+        foreach ($user->roles as $role) {
+            // Dispatch role modified event (role assigned)
+            RoleModified::dispatch(
+                $user,
+                $role,
+                'assigned',
+                $this->resolveActor(),
+                $context
+            );
+        }
+    }
+
+    protected function updateUserDetails(User $user, array $data): void
+    {
         $payload = collect($data)
             ->except(['roles', 'avatar'])
             ->toArray();
 
-        if (! empty($payload)) {
-            $this->userRepository->update($user, $payload);
+        if (empty($payload)) {
+            return;
         }
 
-        if (array_key_exists('roles', $data)) {
-            $this->userRepository->syncRoles($user, $data['roles']);
+        $this->userRepository->update($user, $payload);
+    }
+
+    protected function syncUserRoles(User $user, array $data): void
+    {
+        if (! array_key_exists('roles', $data)) {
+            return;
         }
 
-        if (array_key_exists('avatar', $data)) {
-            $this->handleAvatarUpdate($user, $data['avatar']);
+        $beforeRoles = $this->currentRolesById($user);
+
+        $this->userRepository->syncRoles($user, $data['roles']);
+
+        $afterRoles = $this->freshRolesById($user);
+        $actor = $this->resolveActor();
+
+        $this->dispatchAssignedRoleEvents($user, $beforeRoles, $afterRoles, $actor);
+        $this->dispatchRevokedRoleEvents($user, $beforeRoles, $afterRoles, $actor);
+    }
+
+    protected function updateUserAvatar(User $user, array $data): void
+    {
+        if (! array_key_exists('avatar', $data)) {
+            return;
         }
 
-        return $user->fresh();
+        $this->handleAvatarUpdate($user, $data['avatar']);
+    }
+
+    protected function currentRolesById(User $user): Collection
+    {
+        return $user->roles()->get()->keyBy('id');
+    }
+
+    protected function freshRolesById(User $user): Collection
+    {
+        $user->load('roles');
+
+        return $user->roles->keyBy('id');
+    }
+
+    protected function dispatchAssignedRoleEvents(
+        User $user,
+        Collection $beforeRoles,
+        Collection $afterRoles,
+        ?User $actor
+    ): void {
+        foreach ($afterRoles->diffKeys($beforeRoles) as $role) {
+            // Dispatch role modified event (role assigned)
+            RoleModified::dispatch($user, $role, 'assigned', $actor, RoleModificationContextEnum::ROLE_SYNC);
+        }
+    }
+
+    protected function dispatchRevokedRoleEvents(
+        User $user,
+        Collection $beforeRoles,
+        Collection $afterRoles,
+        ?User $actor
+    ): void {
+        foreach ($beforeRoles->diffKeys($afterRoles) as $role) {
+            // Dispatch role modified event (role revoked)
+            RoleModified::dispatch($user, $role, 'revoked', $actor, RoleModificationContextEnum::ROLE_SYNC);
+        }
+    }
+
+    protected function resolveActor(): ?User
+    {
+        $actor = Auth::user();
+
+        return $actor instanceof User ? $actor : null;
     }
 
     /**

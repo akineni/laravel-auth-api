@@ -31,6 +31,10 @@ Route::middleware(['auth:api', 'jwt.session.activity'])
             ->name('users.index')
             ->middleware('permission:' . PermissionEnum::USER_MANAGEMENT_VIEW->value);
 
+        Route::get('admins', [UserController::class, 'admins'])
+            ->name('users.admins')
+            ->middleware('permission:' . PermissionEnum::USER_MANAGEMENT_VIEW->value);
+
         Route::scopeBindings()->prefix('{user}')->group(function () {
             Route::get('/', [UserController::class, 'show'])
                 ->name('users.show')

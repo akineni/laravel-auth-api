@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasCommonFilterScopes;
+use App\Models\Concerns\HasSearchScope;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Spatie\Permission\Models\Permission as SpatiePermission;
 
@@ -33,5 +35,20 @@ use Spatie\Permission\Models\Permission as SpatiePermission;
  */
 class Permission extends SpatiePermission
 {
-    use HasUuids;
+    use HasUuids, HasSearchScope, HasCommonFilterScopes;
+
+    public function getSearchableColumns(): array
+    {
+        return [
+            'name',
+            'guard_name',
+        ];
+    }
+
+    public function getDefaultSearchFields(): array
+    {
+        return [
+            'name',
+        ];
+    }
 }

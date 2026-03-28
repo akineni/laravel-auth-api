@@ -2,11 +2,11 @@
 
 namespace App\Repositories\Eloquent;
 
-use App\Enums\UserStatusEnum;
+use App\Enums\{RoleEnum, UserStatusEnum};
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\{Collection, Builder};
 
 class UserRepository implements UserRepositoryInterface
 {
@@ -87,23 +87,22 @@ class UserRepository implements UserRepositoryInterface
 
     public function paginate(array $filters = []): LengthAwarePaginator
     {
-        $perPage = $filters['per_page'] ?? config('app.pagination_per_page');
+        return $this->applyListFilters(
+            $this->baseQuery(),
+            $filters
+        )->paginate($this->resolvePerPage($filters));
+    }
 
-        return User::query()
-            ->search($filters['search'] ?? null, [
-                'fullname',
-                'firstname',
-                'lastname',
-                'email',
-                'phone_number',
-            ])
-            ->filterStatus($filters['status'] ?? null)
-            ->createdBetween(
-                $filters['start_date'] ?? null,
-                $filters['end_date'] ?? null
-            )
-            ->latest()
-            ->paginate($perPage);
+    public function paginateAdmins(array $filters = []): LengthAwarePaginator
+    {
+        return $this->applyListFilters(
+            $this->baseQuery()
+                ->with('roles')
+                ->whereHas('roles', function ($query) {
+                    $query->whereIn('name', RoleEnum::adminRoles());
+                }),
+            $filters
+        )->paginate($this->resolvePerPage($filters));
     }
 
     public function findByIdOrFail(string $id): User
@@ -143,7 +142,7 @@ class UserRepository implements UserRepositoryInterface
         return $user;
     }
 
-    protected function baseQuery(bool $includeTrashed = false)
+    protected function baseQuery(bool $includeTrashed = false): Builder
     {
         $query = User::query();
 
@@ -152,5 +151,33 @@ class UserRepository implements UserRepositoryInterface
         }
 
         return $query;
+    }
+
+    protected function applyListFilters(Builder $query, array $filters): Builder
+    {
+        return $query
+            ->search($filters['search'] ?? null, $this->searchableFields())
+            ->filterStatus($filters['status'] ?? null)
+            ->createdBetween(
+                $filters['start_date'] ?? null,
+                $filters['end_date'] ?? null
+            )
+            ->latest();
+    }
+
+    protected function resolvePerPage(array $filters): int
+    {
+        return $filters['per_page'] ?? config('app.pagination_per_page');
+    }
+
+    protected function searchableFields(): array
+    {
+        return [
+            'fullname',
+            'firstname',
+            'lastname',
+            'email',
+            'phone_number',
+        ];
     }
 }

@@ -25,6 +25,7 @@ use App\Traits\CompletesLogin;
 use Illuminate\Support\Facades\{Auth, Hash};
 use Illuminate\Validation\ValidationException;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use App\Notifications\PasswordChangedNotification;
 
 class AuthService
 {
@@ -132,6 +133,9 @@ class AuthService
         $user = $this->validateResetRequest($email, $token);
 
         $this->userRepository->updatePassword($user, $password, false);
+
+        $user->notify(new PasswordChangedNotification());
+
         $this->passwordResetRepository->delete($user);
     }
 

@@ -1,5 +1,10 @@
 # Laravel Auth API
 
+![Laravel](https://img.shields.io/badge/Laravel-10%2B-red)
+![PHP](https://img.shields.io/badge/PHP-8.2%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Status](https://img.shields.io/badge/status-production--ready-success)
+
 A **production-ready Laravel authentication API** designed as a reusable foundation for building secure backend services quickly.
 
 This project provides a robust authentication system with support for:
@@ -12,6 +17,7 @@ This project provides a robust authentication system with support for:
 * Intelligent username generation & suggestions
 * Extensible authentication challenge system
 * User lifecycle management
+* Event-driven notification system (email + database)
 * API documentation
 
 The architecture is built with **clean separation of concerns**, using service layers, repositories, and modular drivers to keep the system maintainable and extensible.
@@ -85,162 +91,33 @@ pixel_eniola
 
 When a username is already taken, the API returns **alternative suggestions**.
 
-Example response:
-
-```json
-{
-  "status": "error",
-  "message": "This username is already taken.",
-  "errors": {
-    "username": [
-      "This username is already taken."
-    ]
-  },
-  "meta": {
-    "username_suggestions": [
-      "eniola_akinlonu92",
-      "eniola.wave",
-      "realeniola",
-      "pixel_eniola",
-      "eniola_core"
-    ]
-  }
-}
-```
-
----
-
-### How It Works
-
-The system uses:
-
-* **Candidate pooling** (not first-match selection)
-* **Multiple strategy families**
-
-  * Classic (name-based)
-  * Compact (short forms)
-  * Branded (prefix/suffix styles)
-  * Word-based (creative combinations)
-* **Randomized selection from available usernames**
-* **Fallback generation with high entropy**
-
-This ensures:
-
-* No repetitive patterns
-* High variation even for identical names
-* Practically inexhaustible username space
-
----
-
-### Reusability
-
-The username system is:
-
-* Implemented via a **dedicated service (`UsernameService`)**
-* Attached to models using a reusable **`HasUsername` trait**
-* Easily extendable for other entities beyond users
-
 ---
 
 ## Verification System (Auth Challenges)
 
-This project implements a **challenge-based verification system** used for:
+Unified system for:
 
 * Email verification
 * Password reset
 * Login OTP
 * Two-factor authentication
 
-All verification flows are handled through a unified **`auth_challenges`** table.
-
-### Supported Verification Methods
-
-| Method      | Description                                           |
-| ----------- | ----------------------------------------------------- |
-| `otp_email` | Email-based OTP                                       |
-| `otp_sms`   | SMS OTP (ready for integration)                       |
-| `totp`      | Authenticator apps (Google Authenticator, Authy, etc) |
-
-Future methods can be added easily:
-
-* Passkeys (WebAuthn)
-* Push authentication
-* Hardware keys
-
 ---
 
 ## Two-Factor Authentication
 
-Users can enable:
+Supports:
 
-### Default OTP (Email)
-
-OTP sent to the user email.
-
-### Authenticator Apps (TOTP)
-
-Supports apps like:
-
-* Google Authenticator
-* Microsoft Authenticator
-* Authy
-* 1Password
-
-Features:
-
-* QR code enrollment
-* Recovery codes
-* Challenge-based verification
-* Secure TOTP validation
+* Email OTP
+* Authenticator apps (Google Authenticator, Authy, etc.)
 
 ---
 
 # OTP & Verification Protection
 
-To ensure security and prevent abuse, the API implements **three layers of protection** for verification flows.
-
----
-
-## 1. OTP Resend Cooldown
-
-Users must wait a configurable amount of time before requesting another OTP.
-
-Default configuration:
-
-```
-OTP_RESEND_COOLDOWN_SECONDS=120
-```
-
----
-
-## 2. API Rate Limiting
-
-Example route protection:
-
-```php
-Route::post('resend-otp', 'resendOtp')
-    ->middleware('throttle:3,15');
-```
-
----
-
-## 3. Verification Attempt Limit
-
-Default configuration:
-
-```
-OTP_MAX_VERIFICATION_ATTEMPTS=5
-```
-
----
-
-## Combined Protection
-
-| Protection      | Purpose                         |
-| --------------- | ------------------------------- |
-| Resend cooldown | Prevent rapid OTP resend abuse  |
-| API throttle    | Prevent endpoint flooding       |
-| Attempt limit   | Prevent OTP brute-force attacks |
+* Resend cooldown
+* Rate limiting
+* Attempt limits
 
 ---
 
@@ -257,7 +134,6 @@ Powered by **Spatie Laravel Permission**.
 * Activate / deactivate accounts
 * Soft delete users
 * Password changes
-* Account activation flow
 
 ---
 
@@ -267,46 +143,47 @@ User avatars are stored using **Cloudinary**.
 
 ---
 
+# Notifications System
+
+Event-driven notification system supporting:
+
+* Email + database notifications
+* Security alerts
+* Role modification alerts
+* Admin awareness
+
+---
+
+## Admin Endpoint
+
+```
+GET /users/admins
+```
+
+---
+
 # API Architecture
 
 ```
-app/
-├── Data/
-├── Enums/
-├── Exceptions/
-├── Helpers/
-├── Http/
-│   ├── Controllers/
-│   ├── Requests/
-│   └── Resources/
-├── Models/
-│   └── Concerns/
-├── Notifications/
-├── Providers/
-├── Repositories/
-│   ├── Contracts/
-│   └── Eloquent/
-├── Services/
-│   ├── Auth/
-│   ├── OTP/
-│   └── Username/
-├── Traits/
+Controllers → Services → Repositories → Models
+                     ↓
+                 Events → Listeners → Notifications
 ```
 
 ---
 
 # Tech Stack
 
-| Technology         | Purpose                   |
-| ------------------ | ------------------------- |
-| Laravel            | Application framework     |
-| MySQL              | Database                  |
-| JWT Auth           | Authentication            |
-| Spatie Permission  | RBAC                      |
-| Laravel Socialite  | SSO authentication        |
-| PragmaRX Google2FA | Authenticator app support |
-| Scribe             | API documentation         |
-| Cloudinary         | Media storage             |
+| Technology         | Purpose |
+|------------------|--------|
+| Laravel          | Framework |
+| MySQL            | Database |
+| JWT Auth         | Authentication |
+| Spatie Permission| RBAC |
+| Socialite        | SSO |
+| Google2FA        | 2FA |
+| Scribe           | API Docs |
+| Cloudinary       | Media |
 
 ---
 
@@ -323,14 +200,6 @@ php artisan jwt:secret
 php artisan scribe:generate
 php artisan serve
 ```
-
----
-
-# Project Goals
-
-* A **production-ready auth foundation**
-* A **clean architecture reference**
-* A **reusable Laravel authentication module**
 
 ---
 

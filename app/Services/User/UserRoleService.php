@@ -2,14 +2,17 @@
 
 namespace App\Services\User;
 
+use App\Enums\RoleModificationContextEnum;
+use App\Events\RoleModified;
 use App\Exceptions\ConflictException;
 use App\Models\User;
 use App\Repositories\Contracts\UserRoleRepositoryInterface;
+use Illuminate\Support\Facades\Auth;
 
 class UserRoleService
 {
     public function __construct(
-        private readonly UserRoleRepositoryInterface $userRoleRepository
+        protected UserRoleRepositoryInterface $userRoleRepository
     ) {}
 
     public function assignRole(User $user, string $roleId): User
@@ -20,7 +23,20 @@ class UserRoleService
             throw new ConflictException('User already has this role');
         }
 
-        return $this->userRoleRepository->assignRole($user, $role);
+        $updatedUser = $this->userRoleRepository->assignRole($user, $role);
+
+        $actor = Auth::user();
+
+        // Dispatch role modified event (role assigned)
+        RoleModified::dispatch(
+            $updatedUser,
+            $role,
+            'assigned',
+            $actor instanceof User ? $actor : null,
+            RoleModificationContextEnum::MANUAL_ASSIGNMENT
+        );
+
+        return $updatedUser;
     }
 
     public function revokeRole(User $user, string $roleId): User
@@ -31,6 +47,19 @@ class UserRoleService
             throw new ConflictException('User does not have this role');
         }
 
-        return $this->userRoleRepository->revokeRole($user, $role);
+        $updatedUser = $this->userRoleRepository->revokeRole($user, $role);
+
+        $actor = Auth::user();
+
+        // Dispatch role modified event (role revoked)
+        RoleModified::dispatch(
+            $updatedUser,
+            $role,
+            'revoked',
+            $actor instanceof User ? $actor : null,
+            RoleModificationContextEnum::MANUAL_REVOCATION
+        );
+
+        return $updatedUser;
     }
 }

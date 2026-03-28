@@ -78,6 +78,11 @@ interface UserRepositoryInterface
     public function paginate(array $filters = []): LengthAwarePaginator;
 
     /**
+     * Paginate admin users (Admin and Super Admin roles).
+     */
+    public function paginateAdmins(array $filters = []): LengthAwarePaginator;
+
+    /**
      * Find a user by ID or fail.
      */
     public function findByIdOrFail(string $id): User;

@@ -212,4 +212,21 @@ class UserController extends Controller
 
         return ApiResponse::success('Password changed successfully');
     }
+
+    /**
+     * List Admin Users
+     *
+     * Retrieve all users with Admin or Super Admin roles.
+     *
+     * @authenticated
+     */
+    public function admins(SearchFilterRequest $request)
+    {
+        $admins = $this->userService->getAdminUsersPaginated($request->validated());
+
+        return ApiResponse::success(
+            'Admin users retrieved successfully',
+            ApiCollection::for($admins, UserMiniResource::class)
+        );
+    }
 }

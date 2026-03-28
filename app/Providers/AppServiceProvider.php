@@ -2,16 +2,23 @@
 
 namespace App\Providers;
 
-use App\Repositories\Contracts\AuthSessionRepositoryInterface;
-use App\Repositories\Contracts\PasswordResetTokenRepositoryInterface;
-use App\Repositories\Contracts\RoleRepositoryInterface;
-use App\Repositories\Contracts\UserRepositoryInterface;
-use App\Repositories\Contracts\UserRoleRepositoryInterface;
-use App\Repositories\Eloquent\AuthSessionRepository;
-use App\Repositories\Eloquent\PasswordResetTokenRepository;
-use App\Repositories\Eloquent\RoleRepository;
-use App\Repositories\Eloquent\UserRepository;
-use App\Repositories\Eloquent\UserRoleRepository;
+use App\Repositories\Contracts\{
+    AuthSessionRepositoryInterface,
+    NotificationRepositoryInterface,
+    PasswordResetTokenRepositoryInterface,
+    RoleRepositoryInterface,
+    UserRepositoryInterface,
+    UserRoleRepositoryInterface
+};
+
+use App\Repositories\Eloquent\{
+    AuthSessionRepository,
+    NotificationRepository,
+    PasswordResetTokenRepository,
+    RoleRepository,
+    UserRepository,
+    UserRoleRepository
+};
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -44,6 +51,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             AuthSessionRepositoryInterface::class,
             AuthSessionRepository::class
+        );
+
+        $this->app->bind(
+            NotificationRepositoryInterface::class,
+            NotificationRepository::class
         );
     }
 

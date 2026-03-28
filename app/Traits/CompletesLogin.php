@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use App\Models\User;
+use App\Notifications\LoginDetectedNotification;
 use Carbon\Carbon;
 
 trait CompletesLogin
@@ -12,6 +13,12 @@ trait CompletesLogin
         $this->updateLastLogin($user);
 
         $token = $this->generateLoginToken($user);
+
+        $user->notify(new LoginDetectedNotification([
+            'logged_in_at' => now()->toDateTimeString(),
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]));
 
         return $this->formatTokenDataResponse($user, $token);
     }
