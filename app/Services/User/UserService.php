@@ -2,7 +2,7 @@
 
 namespace App\Services\User;
 
-use App\Enums\{RoleModificationContextEnum, SignupSourceEnum, UserStatusEnum};
+use App\Enums\{RoleActionEnum, RoleModificationContextEnum, SignupSourceEnum, UserStatusEnum};
 use App\Events\RoleModified;
 use App\Exceptions\ConflictException;
 use App\Helpers\FileUploadHelper;
@@ -196,7 +196,7 @@ class UserService
             RoleModified::dispatch(
                 $user,
                 $role,
-                'assigned',
+                RoleActionEnum::ASSIGNED,
                 $this->resolveActor(),
                 $context
             );
@@ -262,7 +262,7 @@ class UserService
     ): void {
         foreach ($afterRoles->diffKeys($beforeRoles) as $role) {
             // Dispatch role modified event (role assigned)
-            RoleModified::dispatch($user, $role, 'assigned', $actor, RoleModificationContextEnum::ROLE_SYNC);
+            RoleModified::dispatch($user, $role, RoleActionEnum::ASSIGNED, $actor, RoleModificationContextEnum::ROLE_SYNC);
         }
     }
 
@@ -274,7 +274,7 @@ class UserService
     ): void {
         foreach ($beforeRoles->diffKeys($afterRoles) as $role) {
             // Dispatch role modified event (role revoked)
-            RoleModified::dispatch($user, $role, 'revoked', $actor, RoleModificationContextEnum::ROLE_SYNC);
+            RoleModified::dispatch($user, $role, RoleActionEnum::REVOKED, $actor, RoleModificationContextEnum::ROLE_SYNC);
         }
     }
 

@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Enums\NotificationTypeEnum;
+use App\Enums\RoleActionEnum;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -19,7 +20,7 @@ class UserRoleModifiedNotification extends Notification implements ShouldQueue
     public function __construct(
         protected User $subject,
         protected string $roleName,
-        protected string $action,
+        protected RoleActionEnum $action,
         protected ?User $actor = null
     ) {}
 
@@ -53,7 +54,6 @@ class UserRoleModifiedNotification extends Notification implements ShouldQueue
         return $mail;
     }
 
-
     /**
      * Get the array representation of the notification.
      *
@@ -70,7 +70,7 @@ class UserRoleModifiedNotification extends Notification implements ShouldQueue
             'severity' => $type->severity(),
             'action_url' => null,
             'meta' => [
-                'action' => $this->action,
+                'action' => $this->action->value,
                 'role_name' => $this->roleName,
                 'subject_id' => $this->subject->id,
                 'subject_fullname' => $this->subject->fullname,
@@ -84,13 +84,6 @@ class UserRoleModifiedNotification extends Notification implements ShouldQueue
 
     protected function message(): string
     {
-        return "Role {$this->roleName} was {$this->resolveVerb()} {$this->subject->fullname}.";
-    }
-
-    protected function resolveVerb(): string
-    {
-        return $this->action === 'assigned'
-            ? 'assigned to'
-            : 'revoked from';
+        return "Role {$this->roleName} was {$this->action->verb()} {$this->subject->fullname}.";
     }
 }

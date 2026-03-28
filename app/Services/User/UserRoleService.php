@@ -2,6 +2,7 @@
 
 namespace App\Services\User;
 
+use App\Enums\RoleActionEnum;
 use App\Enums\RoleModificationContextEnum;
 use App\Events\RoleModified;
 use App\Exceptions\ConflictException;
@@ -31,7 +32,7 @@ class UserRoleService
         RoleModified::dispatch(
             $updatedUser,
             $role,
-            'assigned',
+            RoleActionEnum::ASSIGNED,
             $actor instanceof User ? $actor : null,
             RoleModificationContextEnum::MANUAL_ASSIGNMENT
         );
@@ -55,7 +56,7 @@ class UserRoleService
         RoleModified::dispatch(
             $updatedUser,
             $role,
-            'revoked',
+            RoleActionEnum::REVOKED,
             $actor instanceof User ? $actor : null,
             RoleModificationContextEnum::MANUAL_REVOCATION
         );

@@ -2,6 +2,7 @@
 
 namespace App\Listeners;
 
+use App\Enums\RoleActionEnum;
 use App\Enums\RoleModificationContextEnum;
 use App\Events\RoleModified;
 use App\Notifications\RoleAssignedNotification;
@@ -40,14 +41,9 @@ class SendRoleModifiedNotifications
         }
 
         $notification = match ($event->action) {
-            'assigned' => new RoleAssignedNotification($event->role->name),
-            'revoked' => new RoleRevokedNotification($event->role->name),
-            default => null,
+            RoleActionEnum::ASSIGNED => new RoleAssignedNotification($event->role->name),
+            RoleActionEnum::REVOKED => new RoleRevokedNotification($event->role->name),
         };
-
-        if (! $notification) {
-            return;
-        }
 
         $event->subject->notify($notification);
     }
@@ -68,13 +64,9 @@ class SendRoleModifiedNotifications
 
     protected function shouldNotifySubject(RoleModified $event): bool
     {
-        if (
-            $event->action === 'assigned' &&
+        return ! (
+            $event->action === RoleActionEnum::ASSIGNED &&
             $event->context === RoleModificationContextEnum::USER_CREATION
-        ) {
-            return false;
-        }
-
-        return true;
+        );
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Enums\RoleActionEnum;
 use App\Enums\RoleModificationContextEnum;
 use App\Models\Role;
 use App\Models\User;
@@ -23,7 +24,7 @@ class RoleModified
     public function __construct(
         public User $subject,
         public Role $role,
-        public string $action, // assigned | revoked
+        public RoleActionEnum $action,
         public ?User $actor = null,
         public ?RoleModificationContextEnum $context = null
     ) {}
