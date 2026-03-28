@@ -61,6 +61,27 @@ class NotificationController extends Controller
     }
 
     /**
+     * Show Notification
+     *
+     * Retrieve a single notification.
+     *
+     * @subgroup Notifications
+     * @authenticated
+     */
+    public function show(Request $request, string $notification)
+    {
+        $notification = $this->notificationService->getForUser(
+            $request->user(),
+            $notification
+        );
+
+        return ApiResponse::success(
+            'Notification retrieved successfully',
+            new NotificationResource($notification)
+        );
+    }
+
+    /**
      * Mark Notification As Read
      *
      * Mark a single notification as read.

@@ -22,6 +22,11 @@ class NotificationService
         return $this->notificationRepository->getUnreadCount($user);
     }
 
+    public function getForUser(User $user, string $notificationId)
+    {
+        return $this->notificationRepository->findForUserOrFail($user, $notificationId);
+    }
+
     public function markAsRead(User $user, string $notificationId): bool
     {
         return $this->notificationRepository->markAsRead($user, $notificationId);

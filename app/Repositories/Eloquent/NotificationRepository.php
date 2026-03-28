@@ -56,11 +56,22 @@ class NotificationRepository implements NotificationRepositoryInterface
         return (bool) $notification->delete();
     }
 
-    protected function findForUserOrFail(User $user, string $notificationId): DatabaseNotification
+    public function findForUserOrFail(
+        User $user,
+        string $notificationId,
+        bool $markAsRead = true
+    ): DatabaseNotification
     {
-        return $user->notifications()
+        $notification = $user->notifications()
             ->where('id', $notificationId)
+            ->with('notifiable')
             ->firstOrFail();
+
+        if ($markAsRead && is_null($notification->read_at)) {
+            $notification->markAsRead();
+        }
+
+        return $notification;
     }
 
     protected function applySearch(MorphMany $query, ?string $search): void

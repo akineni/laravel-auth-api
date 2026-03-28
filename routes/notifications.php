@@ -12,6 +12,9 @@ Route::middleware(['auth:api', 'jwt.session.activity'])
         Route::get('unread-count', 'unreadCount')
             ->name('notifications.unread-count');
 
+        Route::get('{notification}', 'show')
+            ->name('notifications.show');
+
         Route::patch('{notification}/read', 'markAsRead')
             ->name('notifications.read');
 
