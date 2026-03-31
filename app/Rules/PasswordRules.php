@@ -19,4 +19,13 @@ class PasswordRules
                 ->uncompromised()
         ];
     }
+
+    public static function simple(): array
+    {
+        return [
+            'required',
+            'confirmed',
+            Password::min(8),
+        ];
+    }
 }
