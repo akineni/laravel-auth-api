@@ -9,6 +9,10 @@ trait HasFullName
      */
     public function getFullnameAttribute(): string
     {
-        return trim("{$this->firstname} {$this->lastname}");
+        return trim(implode(' ', array_filter([
+            $this->firstname,
+            $this->lastname,
+            // You can add middlename if available
+        ])));
     }
 }
