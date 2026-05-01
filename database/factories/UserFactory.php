@@ -2,19 +2,18 @@
 
 namespace Database\Factories;
 
+use App\Enums\SignupSourceEnum;
+use App\Enums\UserStatusEnum;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ * @extends Factory<User>
  */
 class UserFactory extends Factory
 {
-    /**
-     * The current password being used by the factory.
-     */
-    protected static ?string $password;
+    protected $model = User::class;
 
     /**
      * Define the model's default state.
@@ -24,12 +23,38 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
+            'firstname'         => fake()->firstName(),
+            'lastname'          => fake()->lastName(),
+            'username'          => fake()->unique()->userName(),
+            'email'             => fake()->unique()->safeEmail(),
+            'password'          => 'T3st#Secure!XyZ9', // password is hashed in the model's $casts
             'email_verified_at' => now(),
-            'password' => static::$password ??= 'password',
-            'remember_token' => Str::random(10),
+            'status'            => UserStatusEnum::ACTIVE->value,
+            'signup_source'     => SignupSourceEnum::SELF->value,
+            'two_fa'            => false,
+            'two_fa_method'     => 'default',
+            'failed_logins'     => 0,
+            'locked_until'      => null,
+            'remember_token'    => Str::random(10),
         ];
+    }
+
+    public function pending(): static
+    {
+        return $this->state(['status' => UserStatusEnum::PENDING->value]);
+    }
+
+    public function inactive(): static
+    {
+        return $this->state(['status' => UserStatusEnum::INACTIVE->value]);
+    }
+
+    public function locked(): static
+    {
+        return $this->state([
+            'failed_logins' => 5,
+            'locked_until'  => now()->addMinutes(15),
+        ]);
     }
 
     /**
@@ -37,8 +62,11 @@ class UserFactory extends Factory
      */
     public function unverified(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'email_verified_at' => null,
-        ]);
+        return $this->state(['email_verified_at' => null]);
+    }
+
+    public function withTwoFa(): static
+    {
+        return $this->state(['two_fa' => true]);
     }
 }
