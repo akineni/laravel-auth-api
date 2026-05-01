@@ -203,6 +203,30 @@ php artisan serve
 
 ---
 
+# Testing
+
+Create a dedicated test database first:
+
+```bash
+mysql -u root -p -e "CREATE DATABASE laravel_auth_api_test;"
+```
+
+Then run the suite:
+
+```bash
+php artisan test
+
+# Run a specific file
+php artisan test tests/Feature/Auth/AuthTest.php
+
+# Run a specific test
+php artisan test --filter test_account_locks_after_max_failed_attempts
+```
+
+The suite covers auth flows, OTP verification, user management, roles, and service unit tests.
+
+---
+
 # License
 
 MIT License.
