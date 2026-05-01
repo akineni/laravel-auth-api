@@ -2,12 +2,13 @@
 
 namespace App\Notifications;
 
+use App\Enums\NotificationTypeEnum;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class AccountActivatedNotification extends Notification
+class AccountActivatedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -26,7 +27,7 @@ class AccountActivatedNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['database', 'mail'];
     }
 
     /**
@@ -34,10 +35,15 @@ class AccountActivatedNotification extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $loginUrl = config('frontend.login_url');
+
         return (new MailMessage)
-            ->line('The introduction to the notification.')
-            ->action('Notification Action', url('/'))
-            ->line('Thank you for using our application!');
+            ->subject('Your Account Has Been Activated')
+            ->greeting('Hello ' . ($notifiable->firstname ?? 'there') . ',')
+            ->line('Great news: your account has been activated by an administrator.')
+            ->line('You can now log in and access the platform.')
+            ->action('Log In', $loginUrl)
+            ->line('If you have any questions, feel free to contact support.');
     }
 
     /**
@@ -47,8 +53,17 @@ class AccountActivatedNotification extends Notification
      */
     public function toArray(object $notifiable): array
     {
+        $type = NotificationTypeEnum::SECURITY_ALERT;
+
         return [
-            //
+            'type'       => $type->value,
+            'title'      => 'Account Activated',
+            'message'    => 'Your account has been activated by an administrator.',
+            'severity'   => 'info',
+            'action_url' => config('frontend.login_url'),
+            'meta'       => [
+                'activated_at' => now()->toIso8601String(),
+            ],
         ];
     }
 }

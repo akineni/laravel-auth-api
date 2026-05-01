@@ -7,6 +7,7 @@ use App\Events\RoleModified;
 use App\Exceptions\ConflictException;
 use App\Helpers\FileUploadHelper;
 use App\Models\User;
+use App\Notifications\AccountActivatedNotification;
 use App\Notifications\PasswordChangedNotification;
 use App\Notifications\UserActivationNotification;
 use App\Repositories\Contracts\UserRepositoryInterface;
@@ -94,6 +95,8 @@ class UserService
         $this->userRepository->update($user, [
             'status' => UserStatusEnum::ACTIVE->value,
         ]);
+
+        $user->notify(new AccountActivatedNotification());
 
         return $user->fresh();
     }

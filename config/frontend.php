@@ -22,6 +22,11 @@ return [
         'http://localhost:3000/verify-email'
     ),
 
+    'login_url' => env(
+        'FRONTEND_LOGIN_URL',
+        'http://localhost:3000/login'
+    ),
+
     /*
     |--------------------------------------------------------------------------
     | Allowed Frontend Hosts
