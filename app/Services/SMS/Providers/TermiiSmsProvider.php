@@ -38,7 +38,7 @@ class TermiiSmsProvider implements SmsProviderInterface
             'from'    => $this->from,
             'sms'     => $message,
             'type'    => 'plain',
-            'channel' => 'generic', // change to 'dnd' for OTP if enabled on your account
+            'channel' => 'dnd', // Use 'dnd' for delivery to DND numbers, or 'generic' for regular delivery
         ]);
 
         if ($response->failed()) {
