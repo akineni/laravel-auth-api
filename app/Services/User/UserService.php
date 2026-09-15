@@ -229,11 +229,23 @@ class UserService
             ->except(['roles', 'avatar'])
             ->toArray();
 
+        if (array_key_exists('can_login', $payload)) {
+            $payload['status'] = $payload['can_login']
+                ? UserStatusEnum::ACTIVE->value
+                : UserStatusEnum::SUSPENDED->value;
+
+            unset($payload['can_login']);
+        }
+
         if (empty($payload)) {
             return false;
         }
 
         $this->userRepository->update($user, $payload);
+
+        if (($payload['status'] ?? null) === UserStatusEnum::SUSPENDED->value) {
+            $this->authSessionService->revokeExistingSessions($user);
+        }
 
         return true;
     }

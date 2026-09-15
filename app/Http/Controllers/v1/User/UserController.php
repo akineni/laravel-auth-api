@@ -103,7 +103,16 @@ class UserController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user)
     {
-        $updatedUser = $this->userService->update($user, $request->validated());
+        $validated = $request->validated();
+
+        // Setting can_login=false suspends the user, which has the same
+        // immediate "locked out" effect as deactivation, so it must pass
+        // through the same self/hierarchy/last-active-Super-Admin guards.
+        if (array_key_exists('can_login', $validated) && $validated['can_login'] === false) {
+            $this->authorize('deactivate', $user);
+        }
+
+        $updatedUser = $this->userService->update($user, $validated);
 
         return ApiResponse::success(
             'User updated successfully',
