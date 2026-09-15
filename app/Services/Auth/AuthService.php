@@ -144,6 +144,12 @@ class AuthService
     {
         $challenge = $this->resolveChallenge($challengeToken);
 
+        if ($challenge->method === OtpMethodEnum::TOTP->value) {
+            throw ValidationException::withMessages([
+                'otp' => ["Authenticator app codes can't be resent. Open your app to get the current code."],
+            ]);
+        }
+
         $this->ensureResendCooldownHasPassed($challenge);
 
         return $this->sendOtpService->send(
