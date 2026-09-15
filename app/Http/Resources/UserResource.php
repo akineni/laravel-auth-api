@@ -23,6 +23,7 @@ class UserResource extends JsonResource
             'roles' => $this->formatRoles(),
             'status' => $this->status,
             'two_fa' => (bool) $this->two_fa,
+            'two_fa_method' => $this->two_fa_method,
             'email_verified' => ! is_null($this->email_verified_at),
             'phone_verified' => ! is_null($this->phone_verified_at),
             'state' => $this->state,
