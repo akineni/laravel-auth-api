@@ -98,17 +98,32 @@ class TwoFactorAuthService
     {
         $this->ensureAuthenticatorEnabled($user);
 
+        // Only pause enforcement. The secret, confirmation date, and recovery
+        // codes are kept so re-enabling doesn't force a fresh QR scan, which
+        // would otherwise leave a stale duplicate entry in the user's
+        // authenticator app every time they disable and re-enable.
         $updated = $this->userRepository->update($user, [
             'two_fa' => false,
-            'two_fa_method' => TwoFactorMethodEnum::DEFAULT->value,
-            'two_fa_secret' => null,
-            'two_fa_confirmed_at' => null,
-            'two_fa_recovery_codes' => null,
-            'two_fa_last_used_window' => null,
         ]);
 
         if ($updated) {
             $user->notify(new TwoFactorDisabledNotification());
+        }
+
+        return $updated;
+    }
+
+    public function enableAuthenticator(User $user): bool
+    {
+        $this->ensureAuthenticatorConfigured($user);
+        $this->ensureAuthenticatorNotAlreadyEnabled($user);
+
+        $updated = $this->userRepository->update($user, [
+            'two_fa' => true,
+        ]);
+
+        if ($updated) {
+            $user->notify(new TwoFactorEnabledNotification());
         }
 
         return $updated;
@@ -179,6 +194,18 @@ class TwoFactorAuthService
         ) {
             throw ValidationException::withMessages([
                 'two_fa' => ['Authenticator 2FA is not enabled for this account.'],
+            ]);
+        }
+    }
+
+    private function ensureAuthenticatorConfigured(User $user): void
+    {
+        if (
+            $user->two_fa_method !== TwoFactorMethodEnum::AUTHENTICATOR_APP->value ||
+            !$user->two_fa_secret
+        ) {
+            throw ValidationException::withMessages([
+                'two_fa' => ['No authenticator app has been set up for this account yet.'],
             ]);
         }
     }

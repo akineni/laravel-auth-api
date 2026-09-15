@@ -12,6 +12,7 @@ Route::middleware(['auth:api', 'jwt.session.activity'])
             Route::post('authenticator/setup', [TwoFactorAuthController::class, 'setupAuthenticator']);
             Route::post('authenticator/confirm', [TwoFactorAuthController::class, 'confirmAuthenticator'])
                 ->middleware('throttle:10,1');
+            Route::post('authenticator/enable', [TwoFactorAuthController::class, 'enableAuthenticator']);
             Route::delete('authenticator/disable', [TwoFactorAuthController::class, 'disableAuthenticator']);
             Route::post('recovery-codes/regenerate', [TwoFactorAuthController::class, 'regenerateRecoveryCodes']);
         });

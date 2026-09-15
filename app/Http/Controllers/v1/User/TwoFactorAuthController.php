@@ -91,6 +91,25 @@ class TwoFactorAuthController extends Controller
     }
 
     /**
+     * Enable Authenticator 2FA
+     *
+     * Re-enable a previously configured authenticator app for the
+     * authenticated user, without generating a new secret or QR code.
+     *
+     * @authenticated
+     */
+    public function enableAuthenticator(Request $request)
+    {
+        $this->twoFactorAuthService->enableAuthenticator(
+            $request->user()
+        );
+
+        return ApiResponse::success(
+            'Authenticator 2FA enabled successfully'
+        );
+    }
+
+    /**
      * Disable Authenticator 2FA
      *
      * Disable authenticator-based two-factor authentication
