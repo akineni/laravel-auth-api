@@ -14,17 +14,17 @@ return [
 
     'reset_password_url' => env(
         'FRONTEND_RESET_PASSWORD_URL',
-        'http://localhost:3000/reset-password'
+        'http://localhost:5173/reset-password'
     ),
 
     'email_verification_url' => env(
         'FRONTEND_EMAIL_VERIFICATION_URL',
-        'http://localhost:3000/verify-email'
+        'http://localhost:5173/activate-account'
     ),
 
     'login_url' => env(
         'FRONTEND_LOGIN_URL',
-        'http://localhost:3000/login'
+        'http://localhost:5173/login'
     ),
 
     /*
