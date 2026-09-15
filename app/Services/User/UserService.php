@@ -15,6 +15,7 @@ use App\Notifications\ProfileUpdatedNotification;
 use App\Notifications\UserActivationNotification;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Auth\AuthService;
+use App\Services\Auth\AuthSessionService;
 use Firebase\JWT\{JWT, Key};
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -29,6 +30,7 @@ class UserService
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly AuthService $authService,
+        private readonly AuthSessionService $authSessionService,
     ) {}
 
     /**
@@ -89,6 +91,8 @@ class UserService
     {
         $user->notify(new AccountDeletedNotification());
 
+        $this->authSessionService->revokeExistingSessions($user);
+
         $this->userRepository->delete($user);
     }
 
@@ -114,6 +118,8 @@ class UserService
         $this->userRepository->update($user, [
             'status' => UserStatusEnum::INACTIVE->value,
         ]);
+
+        $this->authSessionService->revokeExistingSessions($user);
 
         $user->notify(new AccountDeactivatedNotification());
 

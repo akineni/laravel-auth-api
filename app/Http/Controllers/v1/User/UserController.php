@@ -137,6 +137,8 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
+        $this->authorize('delete', $user);
+
         $this->userService->deleteUser($user);
 
         return ApiResponse::success('User deleted successfully');
@@ -166,6 +168,8 @@ class UserController extends Controller
      */
     public function deactivateUser(User $user)
     {
+        $this->authorize('deactivate', $user);
+
         $updatedUser = $this->userService->deactivateUser($user);
 
         return ApiResponse::success(

@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Exceptions\UnauthorizedException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return function ($exceptions) {
@@ -44,6 +45,17 @@ return function ($exceptions) {
         return ApiResponse::error($message, 403, [
             'required_permissions' => $requiredPermissions,
         ]);
+    });
+
+    // Illuminate\Auth\Access\AuthorizationException (thrown by $this->authorize()
+    // and denied Policy checks) is converted by Laravel's own exception handler
+    // into this Symfony type before any render() callback sees it, so this is
+    // registered against the converted type rather than the original one.
+    $exceptions->render(function (AccessDeniedHttpException $e, Request $request) {
+        return ApiResponse::error(
+            $e->getMessage() ?: 'You are not authorized to perform this action.',
+            403
+        );
     });
 
     $exceptions->render(function (ModelNotFoundException $e, Request $request) {
