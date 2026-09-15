@@ -36,7 +36,7 @@ class TwoFactorAuthService
 
     public function setupAuthenticator(User $user): array
     {
-        $this->ensureAuthenticatorNotAlreadyEnabled($user);
+        $this->ensureAuthenticatorNotConfigured($user);
 
         $secret = $this->google2fa->generateSecretKey();
 
@@ -46,12 +46,9 @@ class TwoFactorAuthService
             $secret
         );
 
-        // $qrCode = $this->generateQrCodeSvg($otpauthUrl);
-
         return [
             'secret' => $secret,
             'otpauth_url' => $otpauthUrl,
-            // 'qr_code' => $qrCode,
             'qr_code_url' => route('user.two-fa.authenticator.qr-code', [
                 'secret' => $secret,
             ]),
@@ -60,7 +57,7 @@ class TwoFactorAuthService
 
     public function confirmAuthenticator(User $user, string $secret, string $code): array
     {
-        $this->ensureAuthenticatorNotAlreadyEnabled($user);
+        $this->ensureAuthenticatorNotConfigured($user);
 
         $isValid = $this->google2fa->verifyKey($secret, $code);
 
@@ -72,6 +69,8 @@ class TwoFactorAuthService
 
         $recoveryCodes = $this->generateRecoveryCodes();
 
+        // Setting up an authenticator app also switches the active medium to
+        // it and turns two-factor on, matching the previous single-step flow.
         $updated = $this->userRepository->update($user, [
             'two_fa' => true,
             'two_fa_method' => TwoFactorMethodEnum::AUTHENTICATOR_APP->value,
@@ -94,29 +93,14 @@ class TwoFactorAuthService
         ];
     }
 
-    public function disableAuthenticator(User $user): bool
+    /**
+     * Turn two-factor authentication on, using whichever medium is
+     * currently selected (email by default, or a previously configured
+     * authenticator app).
+     */
+    public function enable(User $user): bool
     {
-        $this->ensureAuthenticatorEnabled($user);
-
-        // Only pause enforcement. The secret, confirmation date, and recovery
-        // codes are kept so re-enabling doesn't force a fresh QR scan, which
-        // would otherwise leave a stale duplicate entry in the user's
-        // authenticator app every time they disable and re-enable.
-        $updated = $this->userRepository->update($user, [
-            'two_fa' => false,
-        ]);
-
-        if ($updated) {
-            $user->notify(new TwoFactorDisabledNotification());
-        }
-
-        return $updated;
-    }
-
-    public function enableAuthenticator(User $user): bool
-    {
-        $this->ensureAuthenticatorConfigured($user);
-        $this->ensureAuthenticatorNotAlreadyEnabled($user);
+        $this->ensureNotAlreadyEnabled($user);
 
         $updated = $this->userRepository->update($user, [
             'two_fa' => true,
@@ -129,9 +113,53 @@ class TwoFactorAuthService
         return $updated;
     }
 
+    /**
+     * Turn two-factor authentication off. The active medium and any
+     * authenticator app configuration are left untouched, so re-enabling
+     * later doesn't require setting anything up again.
+     */
+    public function disable(User $user): bool
+    {
+        $this->ensureEnabled($user);
+
+        $updated = $this->userRepository->update($user, [
+            'two_fa' => false,
+        ]);
+
+        if ($updated) {
+            $user->notify(new TwoFactorDisabledNotification());
+        }
+
+        return $updated;
+    }
+
+    /**
+     * Switch which medium two-factor uses, independently of whether it's
+     * currently on or off. Switching to the authenticator app requires one
+     * to already be set up; switching to email is always available.
+     */
+    public function switchMethod(User $user, string $method): bool
+    {
+        $enum = TwoFactorMethodEnum::tryFrom($method);
+
+        if (!$enum) {
+            throw ValidationException::withMessages([
+                'method' => ['Invalid two-factor method.'],
+            ]);
+        }
+
+        if ($enum === TwoFactorMethodEnum::AUTHENTICATOR_APP) {
+            $this->ensureAuthenticatorConfigured($user);
+        }
+
+        return $this->userRepository->update($user, [
+            'two_fa_method' => $enum->value,
+        ]);
+    }
+
     public function regenerateRecoveryCodes(User $user): array
     {
-        $this->ensureAuthenticatorEnabled($user);
+        $this->ensureAuthenticatorConfigured($user);
 
         $recoveryCodes = $this->generateRecoveryCodes();
 
@@ -172,40 +200,38 @@ class TwoFactorAuthService
             ->toArray();
     }
 
-    private function ensureAuthenticatorNotAlreadyEnabled(User $user): void
+    private function ensureAuthenticatorNotConfigured(User $user): void
     {
-        if (
-            $user->two_fa &&
-            $user->two_fa_method === TwoFactorMethodEnum::AUTHENTICATOR_APP->value &&
-            $user->two_fa_secret
-        ) {
+        if ($user->two_fa_secret) {
             throw ValidationException::withMessages([
-                'two_fa' => ['Authenticator 2FA is already enabled for this account.'],
-            ]);
-        }
-    }
-
-    private function ensureAuthenticatorEnabled(User $user): void
-    {
-        if (
-            !$user->two_fa ||
-            $user->two_fa_method !== TwoFactorMethodEnum::AUTHENTICATOR_APP->value ||
-            !$user->two_fa_secret
-        ) {
-            throw ValidationException::withMessages([
-                'two_fa' => ['Authenticator 2FA is not enabled for this account.'],
+                'two_fa' => ['An authenticator app is already set up for this account.'],
             ]);
         }
     }
 
     private function ensureAuthenticatorConfigured(User $user): void
     {
-        if (
-            $user->two_fa_method !== TwoFactorMethodEnum::AUTHENTICATOR_APP->value ||
-            !$user->two_fa_secret
-        ) {
+        if (!$user->two_fa_secret) {
             throw ValidationException::withMessages([
                 'two_fa' => ['No authenticator app has been set up for this account yet.'],
+            ]);
+        }
+    }
+
+    private function ensureNotAlreadyEnabled(User $user): void
+    {
+        if ($user->two_fa) {
+            throw ValidationException::withMessages([
+                'two_fa' => ['Two-factor authentication is already enabled for this account.'],
+            ]);
+        }
+    }
+
+    private function ensureEnabled(User $user): void
+    {
+        if (!$user->two_fa) {
+            throw ValidationException::withMessages([
+                'two_fa' => ['Two-factor authentication is not enabled for this account.'],
             ]);
         }
     }

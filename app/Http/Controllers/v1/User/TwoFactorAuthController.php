@@ -6,6 +6,7 @@ use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\TwoFactor\ConfirmAuthenticatorRequest;
 use App\Http\Requests\User\TwoFactor\RenderQrCodeRequest;
+use App\Http\Requests\User\TwoFactor\SwitchMethodRequest;
 use App\Services\User\TwoFactorAuthService;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -91,40 +92,63 @@ class TwoFactorAuthController extends Controller
     }
 
     /**
-     * Enable Authenticator 2FA
+     * Enable Two-Factor Authentication
      *
-     * Re-enable a previously configured authenticator app for the
-     * authenticated user, without generating a new secret or QR code.
+     * Turn two-factor authentication on for the authenticated user, using
+     * whichever medium is currently selected (email by default, or a
+     * previously configured authenticator app).
      *
      * @authenticated
      */
-    public function enableAuthenticator(Request $request)
+    public function enable(Request $request)
     {
-        $this->twoFactorAuthService->enableAuthenticator(
+        $this->twoFactorAuthService->enable(
             $request->user()
         );
 
         return ApiResponse::success(
-            'Authenticator 2FA enabled successfully'
+            'Two-factor authentication enabled successfully'
         );
     }
 
     /**
-     * Disable Authenticator 2FA
+     * Disable Two-Factor Authentication
      *
-     * Disable authenticator-based two-factor authentication
-     * for the authenticated user.
+     * Turn two-factor authentication off for the authenticated user. The
+     * active medium and any authenticator app configuration are kept, so
+     * re-enabling later doesn't require setting anything up again.
      *
      * @authenticated
      */
-    public function disableAuthenticator(Request $request)
+    public function disable(Request $request)
     {
-        $this->twoFactorAuthService->disableAuthenticator(
+        $this->twoFactorAuthService->disable(
             $request->user()
         );
 
         return ApiResponse::success(
-            'Authenticator 2FA disabled successfully'
+            'Two-factor authentication disabled successfully'
+        );
+    }
+
+    /**
+     * Switch Two-Factor Method
+     *
+     * Switch which medium two-factor authentication uses, independently of
+     * whether it's currently on or off. Switching to the authenticator app
+     * requires one to already be set up.
+     *
+     * @authenticated
+     */
+    public function switchMethod(SwitchMethodRequest $request)
+    {
+        $this->twoFactorAuthService->switchMethod(
+            user: $request->user(),
+            method: $request->validated('method')
+        );
+
+        return ApiResponse::success(
+            'Two-factor method updated successfully'
         );
     }
 

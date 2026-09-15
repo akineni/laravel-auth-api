@@ -32,7 +32,7 @@ class TwoFactorEnabledNotification extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject($type->label())
             ->greeting('Hello ' . ($notifiable->firstname ?? 'there') . ',')
-            ->line('Two-factor authentication was enabled on your account using an authenticator app.')
+            ->line('Two-factor authentication was enabled on your account.')
             ->line('If this was not you, please contact support immediately.');
     }
 

@@ -2,7 +2,6 @@
 
 namespace App\Http\Resources;
 
-use App\Enums\TwoFactorMethodEnum;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -25,7 +24,7 @@ class UserResource extends JsonResource
             'status' => $this->status,
             'two_fa' => (bool) $this->two_fa,
             'two_fa_method' => $this->two_fa_method,
-            'authenticator_configured' => $this->two_fa_method === TwoFactorMethodEnum::AUTHENTICATOR_APP->value && ! is_null($this->two_fa_secret),
+            'authenticator_configured' => ! is_null($this->two_fa_secret),
             'email_verified' => ! is_null($this->email_verified_at),
             'phone_verified' => ! is_null($this->phone_verified_at),
             'state' => $this->state,
