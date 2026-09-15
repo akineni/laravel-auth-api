@@ -88,7 +88,7 @@ class UserRepository implements UserRepositoryInterface
     public function paginate(array $filters = []): LengthAwarePaginator
     {
         return $this->applyListFilters(
-            $this->baseQuery(),
+            $this->baseQuery()->with('roles'),
             $filters
         )->paginate($this->resolvePerPage($filters));
     }
