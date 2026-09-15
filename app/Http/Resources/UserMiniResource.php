@@ -24,6 +24,7 @@ class UserMiniResource extends JsonResource
             'phone_number' => $this->phone_number,
             'status' => $this->status,
             'email_verified' => ! is_null($this->email_verified_at),
+            'phone_verified' => ! is_null($this->phone_verified_at),
             'role_names' => $this->whenLoaded(
                 'roles',
                 fn () => $this->roles->pluck('name')->values()

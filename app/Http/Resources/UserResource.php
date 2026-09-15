@@ -24,6 +24,7 @@ class UserResource extends JsonResource
             'status' => $this->status,
             'two_fa' => (bool) $this->two_fa,
             'email_verified' => ! is_null($this->email_verified_at),
+            'phone_verified' => ! is_null($this->phone_verified_at),
             'state' => $this->state,
             'country' => $this->country,
             'address' => $this->address,
@@ -31,6 +32,7 @@ class UserResource extends JsonResource
             'avatar' => $this->avatar,
             'last_login' => optional($this->last_login)->toDateTimeString(),
             'email_verified_at' => optional($this->email_verified_at)->toDateTimeString(),
+            'phone_verified_at' => optional($this->phone_verified_at)->toDateTimeString(),
             'created_at' => optional($this->created_at)->toDateTimeString(),
             'updated_at' => optional($this->updated_at)->toDateTimeString(),
         ];

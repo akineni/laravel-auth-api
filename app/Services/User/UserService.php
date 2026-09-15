@@ -237,6 +237,12 @@ class UserService
             unset($payload['can_login']);
         }
 
+        // Changing the phone number invalidates any prior verification of
+        // the old number, so it must be re-verified via OTP.
+        if (array_key_exists('phone_number', $payload) && $payload['phone_number'] !== $user->phone_number) {
+            $payload['phone_verified_at'] = null;
+        }
+
         if (empty($payload)) {
             return false;
         }

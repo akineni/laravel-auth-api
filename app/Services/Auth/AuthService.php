@@ -103,7 +103,7 @@ class AuthService
 
             OtpContextEnum::PASSWORD_RESET->value => $this->authorizePasswordReset($user),
 
-            OtpContextEnum::PHONE_VERIFICATION->value => AuthFlowResponseData::phoneVerified(),
+            OtpContextEnum::PHONE_VERIFICATION->value => $this->completePhoneVerification($user),
 
             default => throw new UnsupportedOtpContextException(),
         };
@@ -297,6 +297,13 @@ class AuthService
         $this->userRepository->verifyEmailAndActivate($user);
 
         return AuthFlowResponseData::emailVerified();
+    }
+
+    protected function completePhoneVerification(User $user): AuthFlowResponseData
+    {
+        $this->userRepository->verifyPhone($user);
+
+        return AuthFlowResponseData::phoneVerified();
     }
 
     protected function authorizePasswordReset(User $user): AuthFlowResponseData

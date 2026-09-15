@@ -68,6 +68,11 @@ interface UserRepositoryInterface
     public function verifyEmailAndActivate(User $user): bool;
 
     /**
+     * Mark the user's phone number as verified.
+     */
+    public function verifyPhone(User $user): bool;
+
+    /**
      * Get all users.
      */
     public function getAll(): Collection;

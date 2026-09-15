@@ -80,6 +80,13 @@ class UserRepository implements UserRepositoryInterface
         ]);
     }
 
+    public function verifyPhone(User $user): bool
+    {
+        return $user->update([
+            'phone_verified_at' => now(),
+        ]);
+    }
+
     public function getAll(): Collection
     {
         return User::all();
