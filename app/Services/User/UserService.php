@@ -16,6 +16,7 @@ use App\Notifications\UserActivationNotification;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Auth\AuthService;
 use App\Services\Auth\AuthSessionService;
+use App\Support\PhoneNumberNormalizer;
 use Firebase\JWT\{JWT, Key};
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -235,6 +236,12 @@ class UserService
                 : UserStatusEnum::SUSPENDED->value;
 
             unset($payload['can_login']);
+        }
+
+        if (array_key_exists('phone_number', $payload)) {
+            $country = array_key_exists('country', $payload) ? $payload['country'] : $user->country;
+
+            $payload['phone_number'] = PhoneNumberNormalizer::normalize($payload['phone_number'], $country);
         }
 
         // Changing the phone number invalidates any prior verification of
