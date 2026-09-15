@@ -4,6 +4,9 @@ namespace App\Services\User;
 
 use App\Enums\TwoFactorMethodEnum;
 use App\Models\User;
+use App\Notifications\RecoveryCodesRegeneratedNotification;
+use App\Notifications\TwoFactorDisabledNotification;
+use App\Notifications\TwoFactorEnabledNotification;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
@@ -84,6 +87,8 @@ class TwoFactorAuthService
             ]);
         }
 
+        $user->notify(new TwoFactorEnabledNotification());
+
         return [
             'recovery_codes' => $recoveryCodes,
         ];
@@ -92,8 +97,8 @@ class TwoFactorAuthService
     public function disableAuthenticator(User $user): bool
     {
         $this->ensureAuthenticatorEnabled($user);
-        
-        return $this->userRepository->update($user, [
+
+        $updated = $this->userRepository->update($user, [
             'two_fa' => false,
             'two_fa_method' => TwoFactorMethodEnum::DEFAULT->value,
             'two_fa_secret' => null,
@@ -101,6 +106,12 @@ class TwoFactorAuthService
             'two_fa_recovery_codes' => null,
             'two_fa_last_used_window' => null,
         ]);
+
+        if ($updated) {
+            $user->notify(new TwoFactorDisabledNotification());
+        }
+
+        return $updated;
     }
 
     public function regenerateRecoveryCodes(User $user): array
@@ -118,6 +129,8 @@ class TwoFactorAuthService
                 'two_fa' => ['Failed to regenerate recovery codes. Please try again.'],
             ]);
         }
+
+        $user->notify(new RecoveryCodesRegeneratedNotification());
 
         return [
             'recovery_codes' => $recoveryCodes,

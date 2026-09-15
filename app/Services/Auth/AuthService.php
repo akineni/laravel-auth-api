@@ -13,6 +13,7 @@ use App\Exceptions\Auth\{
     UnsupportedOtpContextException
 };
 use App\Models\{User, AuthChallenge};
+use App\Notifications\AccountLockedNotification;
 use App\Notifications\ResetPasswordNotification;
 use App\Repositories\Contracts\{
     AuthChallengeRepositoryInterface,
@@ -267,6 +268,8 @@ class AuthService
 
             if (($user->failed_logins + 1) >= self::MAX_FAILED_ATTEMPTS) {
                 $this->userRepository->lockUntil($user, now()->addMinutes(self::LOCKOUT_MINUTES));
+
+                $user->notify(new AccountLockedNotification(self::LOCKOUT_MINUTES));
 
                 throw new AccountLockedException('Account locked due to too many failed login attempts. Try again later.');
             }

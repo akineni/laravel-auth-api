@@ -8,7 +8,10 @@ use App\Exceptions\ConflictException;
 use App\Helpers\FileUploadHelper;
 use App\Models\User;
 use App\Notifications\AccountActivatedNotification;
+use App\Notifications\AccountDeactivatedNotification;
+use App\Notifications\AccountDeletedNotification;
 use App\Notifications\PasswordChangedNotification;
+use App\Notifications\ProfileUpdatedNotification;
 use App\Notifications\UserActivationNotification;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Auth\AuthService;
@@ -84,6 +87,8 @@ class UserService
      */
     public function deleteUser(User $user): void
     {
+        $user->notify(new AccountDeletedNotification());
+
         $this->userRepository->delete($user);
     }
 
@@ -109,6 +114,8 @@ class UserService
         $this->userRepository->update($user, [
             'status' => UserStatusEnum::INACTIVE->value,
         ]);
+
+        $user->notify(new AccountDeactivatedNotification());
 
         return $user->fresh();
     }
@@ -173,9 +180,13 @@ class UserService
      */
     public function update(User $user, array $data): User
     {
-        $this->updateUserDetails($user, $data);
+        $detailsChanged = $this->updateUserDetails($user, $data);
         $this->syncUserRoles($user, $data);
-        $this->updateUserAvatar($user, $data);
+        $avatarChanged = $this->updateUserAvatar($user, $data);
+
+        if ($detailsChanged || $avatarChanged) {
+            $user->notify(new ProfileUpdatedNotification());
+        }
 
         return $user->fresh();
     }
@@ -206,17 +217,19 @@ class UserService
         }
     }
 
-    protected function updateUserDetails(User $user, array $data): void
+    protected function updateUserDetails(User $user, array $data): bool
     {
         $payload = collect($data)
             ->except(['roles', 'avatar'])
             ->toArray();
 
         if (empty($payload)) {
-            return;
+            return false;
         }
 
         $this->userRepository->update($user, $payload);
+
+        return true;
     }
 
     protected function syncUserRoles(User $user, array $data): void
@@ -236,13 +249,13 @@ class UserService
         $this->dispatchRevokedRoleEvents($user, $beforeRoles, $afterRoles, $actor);
     }
 
-    protected function updateUserAvatar(User $user, array $data): void
+    protected function updateUserAvatar(User $user, array $data): bool
     {
         if (! array_key_exists('avatar', $data)) {
-            return;
+            return false;
         }
 
-        $this->handleAvatarUpdate($user, $data['avatar']);
+        return $this->handleAvatarUpdate($user, $data['avatar']);
     }
 
     protected function currentRolesById(User $user): Collection
@@ -356,7 +369,7 @@ class UserService
     /**
      * Handle avatar update.
      */
-    private function handleAvatarUpdate(User $user, mixed $avatar): void
+    private function handleAvatarUpdate(User $user, mixed $avatar): bool
     {
         if (is_null($avatar) || $avatar === '') {
             if (! empty($user->avatar)) {
@@ -364,11 +377,12 @@ class UserService
             }
 
             $this->userRepository->update($user, ['avatar' => null]);
-            return;
+
+            return true;
         }
 
         if (is_string($avatar) && $user->avatar && trim($avatar) === trim($user->avatar)) {
-            return;
+            return false;
         }
 
         if ($avatar instanceof \Illuminate\Http\UploadedFile) {
@@ -392,5 +406,7 @@ class UserService
         }
 
         $this->userRepository->update($user, ['avatar' => $newAvatar]);
+
+        return true;
     }
 }
