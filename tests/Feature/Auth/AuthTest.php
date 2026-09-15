@@ -197,7 +197,7 @@ class AuthTest extends TestCase
             'email' => 'nonexistent@example.com',
         ]);
 
-        // Safe enumeration — does not reveal whether email exists
+        // Safe enumeration: does not reveal whether email exists
         $response->assertStatus(200)
             ->assertJsonPath('status', 'success');
     }
